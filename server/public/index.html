@@ -1,47 +1,52 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>jbolaltci</title>
-<link rel="stylesheet" href="/style.css" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>la jbolaltci</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-<main>
-  <h1>jbolaltci</h1>
-  <p class="subtitle">Parse Lojban text and look up what each word means.</p>
+  <main>
+    <nav style="float:right"><a href="/about.html">About</a></nav>
 
-  <form id="analyze-form">
-    <textarea id="lojban-input" required>mi tavla do fi la .lojban.</textarea>
-    <button id="analyze-button" type="submit">Analyze</button>
-  </form>
+    <h1>la jbolaltci</h1>
+    <p class="subtitle">Parse Lojban text and look up what each word means.</p>
 
-  <p id="error-message" role="alert" hidden></p>
+    <form id="analyze-form">
+      <textarea id="lojban-input" required>mi tavla do fi la .lojban.</textarea>
+      <button id="analyze-button" type="submit">Analyze</button>
+    </form>
 
-  <table id="results-table" hidden>
-    <thead>
-      <tr>
-        <th>Word</th>
-        <th>Selma'o</th>
-        <th>Type</th>
-        <th>Definition</th>
-      </tr>
-    </thead>
-    <tbody id="results-body"></tbody>
-  </table>
+    <p id="error-message" role="alert" hidden></p>
 
-  <h2>Decompose a lujvo</h2>
-  <p class="subtitle">Break a compound word down into its rafsi and the gismu each one comes from.</p>
+    <table id="results-table" hidden>
+      <thead>
+        <tr>
+          <th>Word</th>
+          <th>Selma'o</th>
+          <th>Type</th>
+          <th>Definition</th>
+        </tr>
+      </thead>
+      <tbody id="results-body"></tbody>
+    </table>
 
-  <form id="lujvo-form">
-    <input id="lujvo-input" type="text" required value="jbolaltci" />
-    <button id="decompose-button" type="submit">Decompose</button>
-  </form>
+    <!--
+    <h2>Decompose a lujvo</h2>
+    <p class="subtitle">Break a compound word down into its rafsi and the gismu each one comes from.</p>
 
-  <p id="lujvo-error" role="alert" hidden></p>
+    <form id="lujvo-form">
+      <input id="lujvo-input" type="text" required value="jbolaltci" />
+      <button id="decompose-button" type="submit">Decompose</button>
+    </form>
 
-  <ul id="lujvo-results-list" hidden></ul>
-</main>
-<script src="/app.js"></script>
+    <p id="lujvo-error" role="alert" hidden></p>
+
+    <ul id="lujvo-results-list" hidden></ul>
+    -->
+
+  </main>
+  <script src="/app.js"></script>
 </body>
 </html>
