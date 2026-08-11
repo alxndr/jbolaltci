@@ -33,6 +33,10 @@ function buildLujvoBreakdown(components) {
   return list;
 }
 
+function capitalize(word) {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 function buildDefinitionCell(term) {
   const cell = document.createElement("td");
   const englishDefinition = englishDefinitionText(term.definitions);
@@ -43,6 +47,8 @@ function buildDefinitionCell(term) {
     cell.textContent = "";
   } else if (term.lujvoComponents) {
     cell.appendChild(buildLujvoBreakdown(term.lujvoComponents));
+  } else if (term.selmaho === "C") {
+    cell.textContent = `name: ${capitalize(term.word)}`;
   } else {
     cell.textContent = "(no dictionary entry)";
   }

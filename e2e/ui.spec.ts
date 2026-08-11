@@ -65,6 +65,19 @@ test("analyzing a sentence with an undocumented lujvo shows its decomposition in
   await expect(definitionCell).toContainText("tutci");
 });
 
+test("analyzing a sentence with an undocumented name shows 'name: Capitalized' instead of 'no dictionary entry'", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("mi tavla do la rexs.");
+  await page.locator("#analyze-button").click();
+
+  const nameRow = page.locator("#results-body tr", { hasText: "rexs" });
+  await expect(nameRow).toBeVisible({ timeout: 15_000 });
+
+  const definitionCell = nameRow.locator("td").last();
+  await expect(definitionCell).toHaveText("name: Rexs");
+});
+
 test("decomposing the pre-filled lujvo shows its rafsi and source gismu", async ({ page }) => {
   await page.goto("/");
 
