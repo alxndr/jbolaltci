@@ -17,8 +17,9 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "dev:web": "tsx watch server/index.ts",
