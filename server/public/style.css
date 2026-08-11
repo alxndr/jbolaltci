@@ -50,6 +50,14 @@ button {
   cursor: pointer;
 }
 
+ul {
+  padding-left: 2em;
+}
+ul li {
+  line-height: 1.5em;
+  padding-bottom: 0.75em;
+}
+
 #error-message,
 #lujvo-error {
   background: var(--error-bg);
