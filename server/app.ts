@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import express, { type Express } from "express";
-import { LojbanSyntaxError } from "../src/index.js";
+import { decomposeLujvo, LojbanSyntaxError, NotLujvoError } from "../src/index.js";
 import type { AnalyzeResult } from "../src/index.js";
 
 const publicDir = join(dirname(fileURLToPath(import.meta.url)), "public");
@@ -40,6 +40,25 @@ export function createApp(analyzeFn: AnalyzeFn): Express {
       }
       const message = err instanceof Error ? err.message : String(err);
       res.status(500).json({ error: { message } });
+    }
+  });
+
+  app.post("/api/decompose", (req, res) => {
+    const word = (req.body as { word?: unknown } | undefined)?.word;
+    if (typeof word !== "string") {
+      res.status(400).json({ error: { message: 'Request body must include a "word" string.' } });
+      return;
+    }
+
+    try {
+      const components = decomposeLujvo(word);
+      res.status(200).json({ components });
+    } catch (err) {
+      if (err instanceof NotLujvoError) {
+        res.status(400).json({ error: { message: err.message } });
+        return;
+      }
+      throw err;
     }
   });
 

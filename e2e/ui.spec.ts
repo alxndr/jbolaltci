@@ -45,3 +45,36 @@ test("submitting empty input is rejected client-side, with no request sent", asy
   await expect(page.locator("#error-message")).toBeVisible();
   expect(requestCount).toBe(0);
 });
+
+test("decomposing the pre-filled lujvo shows its rafsi and source gismu", async ({ page }) => {
+  await page.goto("/");
+
+  const lujvoInput = page.locator("#lujvo-input");
+  await expect(lujvoInput).toHaveValue("jbolaltci");
+
+  await page.locator("#decompose-button").click();
+
+  const items = page.locator("#lujvo-results-list li");
+  await expect(items).toHaveCount(3);
+  await expect(items.nth(0)).toContainText("jbo");
+  await expect(items.nth(0)).toContainText("lojbo");
+  await expect(items.nth(1)).toContainText("lal");
+  await expect(items.nth(1)).toContainText("lanli");
+  await expect(items.nth(2)).toContainText("tci");
+  await expect(items.nth(2)).toContainText("tutci");
+
+  await expect(page.locator("#lujvo-error")).toBeHidden();
+});
+
+test("decomposing a plain gismu shows an error instead of results", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lujvo-input").fill("melbi");
+  await page.locator("#decompose-button").click();
+
+  const error = page.locator("#lujvo-error");
+  await expect(error).toBeVisible();
+  await expect(error).toContainText("melbi");
+
+  await expect(page.locator("#lujvo-results-list")).toBeHidden();
+});

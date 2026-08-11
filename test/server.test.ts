@@ -108,4 +108,55 @@ describe("createApp", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
   });
+
+  describe("POST /api/decompose", () => {
+    // decomposeLujvo is pure and offline, so these hit the real implementation
+    // directly rather than injecting a fake, unlike analyze's network+cache calls above.
+    const unusedAnalyzeFn = async (): Promise<AnalyzeResult> => ({ input: "", parseTree: [], terms: [] });
+
+    it("returns 200 with the decomposed components for a valid lujvo", async () => {
+      const { baseUrl } = await startServer(unusedAnalyzeFn);
+
+      const res = await fetch(`${baseUrl}/api/decompose`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ word: "jbolaltci" }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({
+        components: [
+          { rafsi: "jbo", gismu: "lojbo" },
+          { rafsi: "lal", gismu: "lanli" },
+          { rafsi: "tci", gismu: "tutci" },
+        ],
+      });
+    });
+
+    it("returns 400 when word is missing", async () => {
+      const { baseUrl } = await startServer(unusedAnalyzeFn);
+
+      const res = await fetch(`${baseUrl}/api/decompose`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      expect(res.status).toBe(400);
+    });
+
+    it("returns 400 with the error message when the word is not a decomposable lujvo", async () => {
+      const { baseUrl } = await startServer(unusedAnalyzeFn);
+
+      const res = await fetch(`${baseUrl}/api/decompose`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ word: "melbi" }),
+      });
+
+      expect(res.status).toBe(400);
+      const body = (await res.json()) as { error: { message: string } };
+      expect(body.error.message).toContain("melbi");
+    });
+  });
 });

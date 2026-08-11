@@ -69,3 +69,56 @@ form.addEventListener("submit", async (event) => {
 
   renderResults(body.terms);
 });
+
+const lujvoForm = document.getElementById("lujvo-form");
+const lujvoInput = document.getElementById("lujvo-input");
+const lujvoError = document.getElementById("lujvo-error");
+const lujvoResultsList = document.getElementById("lujvo-results-list");
+
+function showLujvoError(message) {
+  lujvoError.textContent = message;
+  lujvoError.hidden = false;
+  lujvoResultsList.hidden = true;
+}
+
+function renderLujvoComponents(components) {
+  lujvoResultsList.innerHTML = "";
+  for (const component of components) {
+    const item = document.createElement("li");
+    item.textContent = component.gismu ? `${component.rafsi} → ${component.gismu}` : component.rafsi;
+    lujvoResultsList.appendChild(item);
+  }
+  lujvoResultsList.hidden = false;
+}
+
+lujvoForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  lujvoError.hidden = true;
+  lujvoResultsList.hidden = true;
+
+  const word = lujvoInput.value.trim();
+  if (!word) {
+    showLujvoError("Please enter a word.");
+    return;
+  }
+
+  let response;
+  try {
+    response = await fetch("/api/decompose", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ word }),
+    });
+  } catch {
+    showLujvoError("Couldn't reach the server. Please try again.");
+    return;
+  }
+
+  const body = await response.json();
+  if (!response.ok) {
+    showLujvoError(body.error.message);
+    return;
+  }
+
+  renderLujvoComponents(body.components);
+});

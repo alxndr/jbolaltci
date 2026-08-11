@@ -56,7 +56,7 @@ npm run dev:web    # http://localhost:3000, restarts on change
 npm run start:web  # same, without the watcher
 ```
 
-Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. `server/app.ts` exposes `POST /api/analyze` (`{ "text": string }` → the `AnalyzeResult` JSON, or `{ "error": {...} }` with a 400/500 status); `server/public/` is the static frontend.
+Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. A second section decomposes a lujvo into its rafsi and source gismu. `server/app.ts` exposes `POST /api/analyze` (`{ "text": string }` → the `AnalyzeResult` JSON) and `POST /api/decompose` (`{ "word": string }` → `{ "components": LujvoComponent[] }`), both returning `{ "error": {...} }` with a 400/500 status on failure; `server/public/` is the static frontend.
 
 ## Development
 

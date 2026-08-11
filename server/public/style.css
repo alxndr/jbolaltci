@@ -31,12 +31,16 @@ body {
   margin-top: -0.5rem;
 }
 
-textarea {
+textarea,
+input[type="text"] {
   width: 100%;
-  min-height: 4rem;
   font: inherit;
   padding: 0.5rem;
   box-sizing: border-box;
+}
+
+textarea {
+  min-height: 4rem;
 }
 
 button {
@@ -46,11 +50,16 @@ button {
   cursor: pointer;
 }
 
-#error-message {
+#error-message,
+#lujvo-error {
   background: var(--error-bg);
   color: var(--error-fg);
   padding: 0.75rem;
   border-radius: 0.25rem;
+}
+
+#lujvo-results-list {
+  padding-left: 1.25rem;
 }
 
 table {
