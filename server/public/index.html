@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>jbolaltci</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<main>
+  <h1>jbolaltci</h1>
+  <p class="subtitle">Parse Lojban text and look up what each word means.</p>
+
+  <form id="analyze-form">
+    <textarea id="lojban-input" required>mi tavla do fi la .lojban.</textarea>
+    <button id="analyze-button" type="submit">Analyze</button>
+  </form>
+
+  <p id="error-message" role="alert" hidden></p>
+
+  <table id="results-table" hidden>
+    <thead>
+      <tr>
+        <th>Word</th>
+        <th>Selma'o</th>
+        <th>Type</th>
+        <th>Definition</th>
+      </tr>
+    </thead>
+    <tbody id="results-body"></tbody>
+  </table>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

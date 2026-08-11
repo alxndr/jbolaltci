@@ -1,0 +1,67 @@
+:root {
+  color-scheme: light dark;
+  --fg: #1b1b1b;
+  --bg: #fafafa;
+  --border: #ccc;
+  --error-bg: #fdecea;
+  --error-fg: #8a1f11;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fg: #e8e8e8;
+    --bg: #181818;
+    --border: #444;
+    --error-bg: #3a1a17;
+    --error-fg: #ff9d91;
+  }
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  max-width: 40rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
+}
+
+.subtitle {
+  opacity: 0.75;
+  margin-top: -0.5rem;
+}
+
+textarea {
+  width: 100%;
+  min-height: 4rem;
+  font: inherit;
+  padding: 0.5rem;
+  box-sizing: border-box;
+}
+
+button {
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  font: inherit;
+  cursor: pointer;
+}
+
+#error-message {
+  background: var(--error-bg);
+  color: var(--error-fg);
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}

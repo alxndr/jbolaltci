@@ -47,16 +47,28 @@ await analyze(text, {
 
 Supply your own `cache`/`client` to point at a different lensisku deployment, swap in an in-memory cache for tests, or avoid touching disk/network entirely (see `test/analyze.test.ts` for fakes of both).
 
+## Web app
+
+A basic web page (plain HTML/CSS/JS, no framework or build step) backed by a small Express server:
+
+```sh
+npm run dev:web    # http://localhost:3000, restarts on change
+npm run start:web  # same, without the watcher
+```
+
+Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. `server/app.ts` exposes `POST /api/analyze` (`{ "text": string }` → the `AnalyzeResult` JSON, or `{ "error": {...} }` with a 400/500 status); `server/public/` is the static frontend.
+
 ## Development
 
 ```sh
 npm test          # vitest, offline — network-mocked and in-memory-cache tests only
 RUN_LIVE_TESTS=1 npm test -- test/live-smoke.test.ts   # also hits the real lensisku API
+npx playwright test   # e2e: drives a real browser against the real server + real lensisku
 npm run typecheck
 npm run build      # ESM build + .d.ts via tsup, to dist/
 ```
 
-Built as a library only for now (no CLI/web UI yet) — see `src/index.ts` for the full exported surface: `analyze`, `parseRaw`, `parseTrimmed`, `extractTerms`, `decomposeLujvo`, `LensiskuClient`, `SqliteDictionaryCache`, and their types.
+See `src/index.ts` for the full library export surface: `analyze`, `parseRaw`, `parseTrimmed`, `extractTerms`, `decomposeLujvo`, `LensiskuClient`, `SqliteDictionaryCache`, and their types.
 
 ## Attribution
 
