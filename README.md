@@ -1,5 +1,7 @@
 # jbolaltci
 
+[![CI](https://github.com/alxndr/jbolaltci/actions/workflows/ci.yml/badge.svg)](https://github.com/alxndr/jbolaltci/actions/workflows/ci.yml)
+
 *jbolaltci* = jbo (lojbo, "Lojban") + lal (lanli, "analyze") + tci (tutci, "tool") — a Lojban-analysis tool.
 
 Parses Lojban text with the [camxes](https://github.com/lojban/ilmentufa) grammar, looks up the meaning of every word against [lensisku](https://lensisku.lojban.org) (the current living-document Lojban dictionary), and decomposes lujvo into their component gismu — in the spirit of tools like [la jboski](https://jboski.lojban.org/static/about.html) and [la camxes](https://camxes.lojban.org/static/about.html), but wired to lensisku instead of the older jbofihe/jbovlaste stack.
@@ -68,6 +70,8 @@ npx playwright test   # e2e: drives a real browser against the real server + rea
 npm run typecheck
 npm run build      # ESM build + .d.ts via tsup, to dist/
 ```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, vitest, and Playwright, then builds, on every push/PR to `main` — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there). No GitHub Pages deployment yet: the app needs a running Node server (SQLite cache, live lensisku calls), which plain static Pages hosting can't run as-is.
 
 See `src/index.ts` for the full library export surface: `analyze`, `parseRaw`, `parseTrimmed`, `extractTerms`, `decomposeLujvo`, `LensiskuClient`, `SqliteDictionaryCache`, and their types.
 

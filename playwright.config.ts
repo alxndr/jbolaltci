@@ -9,6 +9,7 @@ const cacheDir = mkdtempSync(join(tmpdir(), "jbolaltci-e2e-cache-"));
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: false,
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL: `http://127.0.0.1:${port}`,
   },
