@@ -23,8 +23,8 @@ const jimpeDefinitions: ValsiDefinition[] = [
 ];
 
 describe("defaultCachePath", () => {
-  it("points at dictionary.sqlite under a jboski-update cache directory", () => {
-    expect(defaultCachePath()).toMatch(/jboski-update[/\\]dictionary\.sqlite$/);
+  it("points at dictionary.sqlite under a jbolaltci cache directory", () => {
+    expect(defaultCachePath()).toMatch(/jbolaltci[/\\]dictionary\.sqlite$/);
   });
 });
 
@@ -32,7 +32,7 @@ describe("SqliteDictionaryCache", () => {
   let dir: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), "jboski-update-cache-test-"));
+    dir = mkdtempSync(join(tmpdir(), "jbolaltci-cache-test-"));
   });
 
   afterEach(() => {

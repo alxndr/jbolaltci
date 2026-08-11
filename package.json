@@ -1,7 +1,7 @@
 {
-  "name": "jboski-update",
+  "name": "jbolaltci",
   "version": "0.1.0",
-  "description": "Parse Lojban text and look up each term's meaning, using the camxes grammar and the lensisku dictionary API.",
+  "description": "Parse Lojban text, look up each term's meaning, and decompose lujvo into their component gismu, using the camxes grammar, latkerlo-jvotci, and the lensisku dictionary API.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -25,7 +25,8 @@
     "lojban",
     "camxes",
     "lensisku",
-    "parser"
+    "parser",
+    "lujvo"
   ],
   "author": "",
   "license": "MIT",

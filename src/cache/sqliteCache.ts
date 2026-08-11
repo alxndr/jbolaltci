@@ -6,7 +6,7 @@ import type { DictionaryCache } from "./cache.js";
 import type { Valsi, ValsiDefinition } from "../dictionary/types.js";
 
 export function defaultCachePath(): string {
-  return join(homedir(), ".cache", "jboski-update", "dictionary.sqlite");
+  return join(homedir(), ".cache", "jbolaltci", "dictionary.sqlite");
 }
 
 export interface SqliteDictionaryCacheOptions {
