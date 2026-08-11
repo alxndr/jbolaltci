@@ -46,6 +46,25 @@ test("submitting empty input is rejected client-side, with no request sent", asy
   expect(requestCount).toBe(0);
 });
 
+test("analyzing a sentence with an undocumented lujvo shows its decomposition instead of 'no dictionary entry'", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("mi tavla do le jbolaltci");
+  await page.locator("#analyze-button").click();
+
+  const lujvoRow = page.locator("#results-body tr", { hasText: "jbolaltci" });
+  await expect(lujvoRow).toBeVisible({ timeout: 15_000 });
+
+  const definitionCell = lujvoRow.locator("td").last();
+  await expect(definitionCell).not.toContainText("no dictionary entry");
+  await expect(definitionCell).toContainText("jbo");
+  await expect(definitionCell).toContainText("lojbo");
+  await expect(definitionCell).toContainText("lal");
+  await expect(definitionCell).toContainText("lanli");
+  await expect(definitionCell).toContainText("tci");
+  await expect(definitionCell).toContainText("tutci");
+});
+
 test("decomposing the pre-filled lujvo shows its rafsi and source gismu", async ({ page }) => {
   await page.goto("/");
 

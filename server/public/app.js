@@ -15,22 +15,51 @@ function hideError() {
   errorBox.textContent = "";
 }
 
+function englishDefinitionText(definitions) {
+  return definitions.find((d) => d.langrealname === "English")?.definition ?? null;
+}
+
+function buildLujvoBreakdown(components) {
+  const list = document.createElement("ul");
+  list.className = "lujvo-breakdown";
+  for (const component of components) {
+    const item = document.createElement("li");
+    const gloss = component.gismu ? englishDefinitionText(component.definitions) : null;
+    item.textContent = component.gismu
+      ? `${component.rafsi} → ${component.gismu}${gloss ? `: ${gloss}` : ""}`
+      : component.rafsi;
+    list.appendChild(item);
+  }
+  return list;
+}
+
+function buildDefinitionCell(term) {
+  const cell = document.createElement("td");
+  const englishDefinition = englishDefinitionText(term.definitions);
+
+  if (englishDefinition) {
+    cell.textContent = englishDefinition;
+  } else if (term.valsi) {
+    cell.textContent = "";
+  } else if (term.lujvoComponents) {
+    cell.appendChild(buildLujvoBreakdown(term.lujvoComponents));
+  } else {
+    cell.textContent = "(no dictionary entry)";
+  }
+
+  return cell;
+}
+
 function renderResults(terms) {
   resultsBody.innerHTML = "";
   for (const term of terms) {
-    const englishDefinition = term.definitions.find((d) => d.langrealname === "English");
-    const definitionText = englishDefinition
-      ? englishDefinition.definition
-      : term.valsi
-        ? ""
-        : "(no dictionary entry)";
-
     const row = document.createElement("tr");
-    for (const text of [term.word, term.selmaho, term.valsi ? term.valsi.type_name : "—", definitionText]) {
+    for (const text of [term.word, term.selmaho, term.valsi ? term.valsi.type_name : "—"]) {
       const cell = document.createElement("td");
       cell.textContent = text;
       row.appendChild(cell);
     }
+    row.appendChild(buildDefinitionCell(term));
     resultsBody.appendChild(row);
   }
   resultsTable.hidden = false;

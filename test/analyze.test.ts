@@ -63,8 +63,22 @@ describe("analyze", () => {
 
     expect(result.input).toBe("ti melbi");
     expect(result.terms).toEqual([
-      { index: 0, selmaho: "KOhA", word: "ti", valsi: fakeValsi("ti", 1), definitions: fakeDefinitions("ti") },
-      { index: 1, selmaho: "G", word: "melbi", valsi: fakeValsi("melbi", 1), definitions: fakeDefinitions("melbi") },
+      {
+        index: 0,
+        selmaho: "KOhA",
+        word: "ti",
+        valsi: fakeValsi("ti", 1),
+        definitions: fakeDefinitions("ti"),
+        lujvoComponents: null,
+      },
+      {
+        index: 1,
+        selmaho: "G",
+        word: "melbi",
+        valsi: fakeValsi("melbi", 1),
+        definitions: fakeDefinitions("melbi"),
+        lujvoComponents: null,
+      },
     ]);
   });
 
@@ -120,5 +134,50 @@ describe("analyze", () => {
 
     await expect(analyze("...###invalid###...", { cache, client })).rejects.toThrow(LojbanSyntaxError);
     expect(client.getValsi).not.toHaveBeenCalled();
+  });
+
+  it("decomposes an undocumented lujvo term and looks up each component gismu's definitions", async () => {
+    const cache = new FakeCache();
+    const client = fakeClient({
+      getValsi: async (word) => (word === "jbolaltci" ? null : fakeValsi(word, 1)),
+    });
+
+    const result = await analyze("le jbolaltci", { cache, client });
+
+    const lujvoTerm = result.terms.find((term) => term.word === "jbolaltci");
+    expect(lujvoTerm?.valsi).toBeNull();
+    expect(lujvoTerm?.lujvoComponents).toEqual([
+      { rafsi: "jbo", gismu: "lojbo", definitions: fakeDefinitions("lojbo") },
+      { rafsi: "lal", gismu: "lanli", definitions: fakeDefinitions("lanli") },
+      { rafsi: "tci", gismu: "tutci", definitions: fakeDefinitions("tutci") },
+    ]);
+  });
+
+  it("does not decompose a lujvo term that already has its own dictionary entry", async () => {
+    const cache = new FakeCache();
+    const client = fakeClient();
+
+    const result = await analyze("le jbolaltci", { cache, client });
+
+    const lujvoTerm = result.terms.find((term) => term.word === "jbolaltci");
+    expect(lujvoTerm?.valsi).not.toBeNull();
+    expect(lujvoTerm?.lujvoComponents).toBeNull();
+  });
+
+  it("skips component gismu definitions, but still names them, when includeDefinitions is false", async () => {
+    const cache = new FakeCache();
+    const client = fakeClient({
+      getValsi: async (word) => (word === "jbolaltci" ? null : fakeValsi(word, 1)),
+    });
+
+    const result = await analyze("le jbolaltci", { cache, client, includeDefinitions: false });
+
+    const lujvoTerm = result.terms.find((term) => term.word === "jbolaltci");
+    expect(lujvoTerm?.lujvoComponents).toEqual([
+      { rafsi: "jbo", gismu: "lojbo", definitions: [] },
+      { rafsi: "lal", gismu: "lanli", definitions: [] },
+      { rafsi: "tci", gismu: "tutci", definitions: [] },
+    ]);
+    expect(client.getDefinitions).not.toHaveBeenCalled();
   });
 });

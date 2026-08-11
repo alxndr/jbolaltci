@@ -30,6 +30,7 @@ decomposeLujvo("jbolaltci");
 1. Parses the text with the canonical `camxes.peg` grammar (vendored, MIT-licensed, from `lojban/ilmentufa`).
 2. Walks the resulting parse tree into an ordered list of words, each tagged with its selma'o (word class).
 3. Looks up each distinct word against a local cache first (a SQLite file at `~/.cache/jbolaltci/dictionary.sqlite` by default), falling back to a live call to lensisku's public JSON API on a cache miss, and writes the result back to the cache.
+4. For a lujvo term with no dictionary entry of its own (selma'o `L`, `valsi` null), decomposes it and looks up each component gismu's definitions too, exposed as `term.lujvoComponents` (null otherwise — including for a lujvo that *does* have its own entry, where decomposing it would be redundant).
 
 Throws `LojbanSyntaxError` (with `.expected`/`.found`/`.line`/`.column`) if the input isn't grammatical Lojban.
 

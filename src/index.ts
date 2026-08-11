@@ -1,5 +1,11 @@
 export { analyze } from "./analyze.js";
-export type { AnalyzeOptions, AnalyzeResult, AnnotatedTerm, DictionaryLookup } from "./analyze.js";
+export type {
+  AnalyzeOptions,
+  AnalyzeResult,
+  AnnotatedLujvoComponent,
+  AnnotatedTerm,
+  DictionaryLookup,
+} from "./analyze.js";
 
 export { LojbanSyntaxError, parseRaw, parseTrimmed } from "./parser/camxes.js";
 export { extractTerms } from "./parser/extractTerms.js";
