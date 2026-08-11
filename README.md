@@ -72,7 +72,11 @@ npm run typecheck
 npm run build      # ESM build + .d.ts via tsup, to dist/
 ```
 
-CI (`.github/workflows/ci.yml`) runs typecheck, vitest, and Playwright, then builds, on every push/PR to `main` — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there). No GitHub Pages deployment yet: the app needs a running Node server (SQLite cache, live lensisku calls), which plain static Pages hosting can't run as-is.
+CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as two jobs — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there):
+1. `typecheck-and-unit`: typecheck, then vitest, on a plain `ubuntu-latest` runner.
+2. `e2e` (only once that passes): Playwright, inside Microsoft's official `mcr.microsoft.com/playwright` container image (pinned to the exact `@playwright/test` version) so the browsers are already there instead of being downloaded every run. That image has no C/C++ toolchain, so the job installs `python3`/`build-essential` first — `better-sqlite3` needs to compile its native binding via `node-gyp`.
+
+No library build step in CI for now (nothing's being distributed/published yet), and no GitHub Pages deployment either: the app needs a running Node server (SQLite cache, live lensisku calls), which plain static Pages hosting can't run as-is.
 
 See `src/index.ts` for the full library export surface: `analyze`, `parseRaw`, `parseTrimmed`, `extractTerms`, `decomposeLujvo`, `LensiskuClient`, `SqliteDictionaryCache`, and their types.
 

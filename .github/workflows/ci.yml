@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 jobs:
-  test-and-build:
+  typecheck-and-unit:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,8 +26,23 @@ jobs:
       - name: Unit/integration tests (vitest)
         run: npm run test:unit
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+  e2e:
+    needs: typecheck-and-unit
+    runs-on: ubuntu-latest
+    # Pinned to the exact @playwright/test version in package.json -- Playwright
+    # requires the browser build and the npm package to match. Browsers are
+    # already baked into this image, so there's no separate install step.
+    container: mcr.microsoft.com/playwright:v1.62.1-noble
+    steps:
+      - uses: actions/checkout@v4
+
+      # This image has no C/C++ toolchain, but better-sqlite3 needs one to
+      # compile its native binding via node-gyp.
+      - name: Install build tools for native dependencies
+        run: apt-get update && apt-get install -y --no-install-recommends python3 build-essential
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: End-to-end tests (Playwright)
         run: npm run test:e2e
@@ -39,6 +54,3 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
-
-      - name: Build library
-        run: npm run build
