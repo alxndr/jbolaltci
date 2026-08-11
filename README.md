@@ -66,7 +66,7 @@ Type Lojban text into the textarea, submit, and see a table of each word's selma
 ```sh
 npm test          # vitest, offline — network-mocked and in-memory-cache tests only
 RUN_LIVE_TESTS=1 npm test -- test/live-smoke.test.ts   # also hits the real lensisku API
-npx playwright test   # e2e: drives a real browser against the real server + real lensisku
+npm run test:e2e   # e2e: drives a real browser against the real server + real lensisku
 npm run typecheck
 npm run build      # ESM build + .d.ts via tsup, to dist/
 ```

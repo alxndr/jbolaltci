@@ -19,14 +19,14 @@
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "dev:web": "tsx watch server/index.ts",
     "start:web": "tsx server/index.ts"
   },
   "keywords": [
     "lojban",
-    "camxes",
-    "lensisku",
+    "lojbau",
     "parser",
     "lujvo"
   ],
