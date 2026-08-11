@@ -12,3 +12,6 @@ export type { Valsi, ValsiDefinition } from "./dictionary/types.js";
 export type { DictionaryCache } from "./cache/cache.js";
 export { defaultCachePath, SqliteDictionaryCache } from "./cache/sqliteCache.js";
 export type { SqliteDictionaryCacheOptions } from "./cache/sqliteCache.js";
+
+export { decomposeLujvo, NotLujvoError } from "./lujvo/decompose.js";
+export type { LujvoComponent } from "./lujvo/decompose.js";

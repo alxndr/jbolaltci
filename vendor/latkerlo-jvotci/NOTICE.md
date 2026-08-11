@@ -1,0 +1,10 @@
+These 7 files are ported from [latkerlo/latkerlo-jvotci](https://github.com/latkerlo/latkerlo-jvotci)'s `js/src/` directory (a TypeScript lujvo-making/decomposing library, itself based on the `uakci/jvozba` → `sozysozbot_jvozba` → `p-lujvo` lineage — see `LICENSE.md`).
+
+**Licensing is mixed, not uniformly MIT.** The upstream repo's own `LICENSE.md` (reproduced here verbatim) only discloses MIT terms, but two of the seven files carry their own, different per-file header:
+
+- **MIT** (per each file's own header comment): `exceptions.ts`, `katna.ts`, `tarmi.ts`, `tools.ts`. `rafsi.ts` has no per-file header and is covered by the general MIT terms in `LICENSE.md`.
+- **Apache License, Version 2.0** (per each file's own header comment, "Copyright (c) 2023 Toni Brown... Licensed under the Apache License, Version 2.0. Modified by latkerlo"): `data.ts`, `jvozba.ts`. The full license text is included here as `APACHE-2.0.txt`, as required for redistribution.
+
+**Modification disclosure** (required by Apache License 2.0 §4(b) for `data.ts` and `jvozba.ts`, and done identically to the rest for consistency): the *only* change made to any of these 7 files, in every case, was converting them from implicit global-scope scripts (upstream loads them via `<script>` tags in a fixed order, with no `import`/`export` statements at all) into standard ES modules — adding `export` to top-level declarations and an `import { ... } from "./x.js"` line per file for its cross-file references. No algorithmic logic was changed.
+
+**Type-checking**: this project's own `tsconfig.json` uses `strict: true` plus `noUncheckedIndexedAccess`, stricter than upstream's (`noImplicitAny`/`strictNullChecks` only). Rather than reworking the ported algorithm to satisfy stricter array/string-indexing rules it wasn't written against, each ported file carries a `// @ts-nocheck` directive. This project's own code that *consumes* these files — `src/lujvo/decompose.ts` — is fully strict-checked as normal; only the ported files themselves are exempted.
