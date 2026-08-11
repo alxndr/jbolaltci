@@ -1,0 +1,3 @@
+`camxes.js` and `camxes_postproc.js` are vendored verbatim from [lojban/ilmentufa](https://github.com/lojban/ilmentufa) (MIT-licensed, see `LICENSE` in this directory). `camxes.js` is the PEG.js-compiled parser for `camxes.peg`, the canonical standard Lojban grammar; `camxes_postproc.js` trims/annotates its raw parse trees. They are not modified here.
+
+`glosser/gismu-data.js` is vendored alongside them because `camxes_postproc.js` unconditionally `require()`s it at load time. Only that one file was pulled from the upstream `glosser/` directory — the rest of that directory (jQuery, Bootstrap, images) is upstream's own standalone HTML glosser UI and isn't needed here.
