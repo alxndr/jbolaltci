@@ -46,12 +46,26 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # This image has no C/C++ toolchain, but better-sqlite3 needs one to
-      # compile its native binding via node-gyp.
+      # better-sqlite3 ships prebuilt binaries, but `npm ci` always attempts
+      # a node-gyp rebuild regardless (confirmed via a local run of this
+      # exact image: it doesn't check for a matching prebuild first) -- and
+      # this image has no C/C++ toolchain for that to succeed with. Caching
+      # the installed node_modules (keyed on this image tag + the lockfile)
+      # means that cost, and this apt-get install, are only paid again when
+      # dependencies actually change.
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v6
+        with:
+          path: node_modules
+          key: node-modules-playwright-v1.62.1-noble-${{ hashFiles('package-lock.json') }}
+
       - name: Install build tools for native dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: apt-get update && apt-get install -y --no-install-recommends python3 build-essential
 
       - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: End-to-end tests (Playwright)
