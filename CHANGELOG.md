@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.2.0-rc.0] - 2026-08-15
+
+### Fixed
+
+- `package.json` was missing a `repository` field. npm's provenance verification cross-checks the Sigstore attestation's repo URL against this field, so the first automated Trusted Publishing run (via `publish.yml`) failed with a 422 until it was added.
+
 ## [0.2.0-alpha] - 2026-08-15
 
 First published release.
@@ -29,5 +35,6 @@ First published release.
 - `LensiskuClient` now binds `fetch` to `globalThis`. A browser's native `fetch` throws `"Illegal invocation"` when called with an unbound reference; Node's `fetch` silently tolerated the same code.
 - `web/build.mjs` was printing `http://undefined:3100` for local dev — esbuild's `serve()` resolves with `{ hosts: string[] }`, not a singular `host`.
 
-[Unreleased]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-alpha...HEAD
+[Unreleased]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.0...HEAD
+[0.2.0-rc.0]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-alpha...v0.2.0-rc.0
 [0.2.0-alpha]: https://github.com/alxndr/jbolaltci/releases/tag/v0.2.0-alpha
