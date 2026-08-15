@@ -3,7 +3,7 @@
 Releases go out via GitHub Actions, using npm's Trusted Publishing (OIDC) -- see `.github/workflows/publish.yml`.
 No npm token lives in this repo or on anyone's laptop; each publish is authenticated per CI run and tied to this exact repo + workflow file. See [ADR 002](./docs/architecture-decisions/002-publish-via-oidc-trusted-publishing.md) for why.
 
-**Nothing has been published yet.** The one-time bootstrap step at the bottom of this document hasn't happened -- do that first, before the "normal release" flow below can work.
+**`0.2.0-alpha` is published** (the one-time bootstrap below, done manually). The npm Trusted Publisher still needs to be configured on npmjs.com (also at the bottom of this document) before the tag-triggered `publish.yml` flow below will actually work for the *next* release -- until then, `npm publish` still has to be run by hand.
 
 ## normal release
 
@@ -39,18 +39,20 @@ git push && git push --tags
 
 If a target version needs more than one round -- something's found wrong with the first alpha and it needs a follow-up before promotion -- number them instead of overwriting: `npm version prerelease --preid=alpha` bumps `X.Y.Z-alpha.N` iteratively (`.0` -> `.1` -> ...) rather than hand-setting the string each time.
 
-`publish.yml` reads the dist-tag off the version string itself: anything with a `-` in it (`0.3.0-alpha`, `1.0.0-rc.1`, ...) publishes under that prerelease identifier as the npm dist-tag (`alpha`, `rc`, ...) instead of `latest`. So `npm install jbolaltci` still gets the last non-prerelease version; only `npm install jbolaltci@alpha` picks up a prerelease.
+`publish.yml` reads the dist-tag off the version string itself: anything with a `-` in it (`0.3.0-alpha`, `1.0.0-rc.1`, ...) publishes under that prerelease identifier as the npm dist-tag (`alpha`, `rc`, ...) instead of `latest`. Normally that means `npm install jbolaltci` gets the last non-prerelease version and only `npm install jbolaltci@alpha` picks up a prerelease -- **but not for a package's first-ever publish**: npm's registry won't let a package exist with zero dist-tags, so even with `--tag alpha`, that very first publish (`0.2.0-alpha`, here) also gets `latest` assigned to it, since there's nothing else for `latest` to point at yet. Confirmed via `npm dist-tag ls jbolaltci` right after publishing. This self-corrects the moment a real non-prerelease version is published without an explicit `--tag` (the normal case in step 3/4 above) -- `latest` moves off the prerelease then. Until that happens, though, a plain `npm install jbolaltci` right now installs `0.2.0-alpha`.
 
-## one-time bootstrap (not yet done)
+## one-time bootstrap
 
 npm's Trusted Publishing requires a package to already exist on the registry before you can configure OIDC for it -- there's no PyPI-style "pending publisher" for a brand-new name. So the very first version has to be published manually, from a local, already-`npm login`'d machine:
 
 ```sh
-npm publish --dry-run   # sanity-check the tarball contents first
-npm publish
+npm publish --dry-run --tag alpha   # sanity-check the tarball contents first
+npm publish --tag alpha
 ```
 
-Then, on npmjs.com: package page → Settings → Trusted Publisher → Add a GitHub Actions publisher, with:
+**Done** -- `0.2.0-alpha`, published 2026-08-15. `npm publish` prompted for a one-time password (2FA-on-publish); the URL it printed to authenticate is a short-lived credential and gets masked even in npm's own debug log, so that step has to be run interactively in a real terminal, not relayed secondhand.
+
+Still needed, on npmjs.com: package page → Settings → Trusted Publisher → Add a GitHub Actions publisher, with:
 
 - Organization or user: `alxndr`
 - Repository: `jbolaltci`
