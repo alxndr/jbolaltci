@@ -1,0 +1,52 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write # required for npm Trusted Publishing (OIDC)
+  contents: write # required to create the GitHub Release
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run typecheck:web
+      - run: npm run test:unit
+      - run: npm run build
+      - name: Determine npm dist-tag
+        id: dist-tag
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [[ "$VERSION" == *-* ]]; then
+            # e.g. 1.0.0-alpha.2 -> alpha, 2.1.0-rc.0 -> rc
+            TAG=$(node -p "'$VERSION'.split('-')[1].split('.')[0]")
+          else
+            TAG=latest
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+      - run: npm publish --tag ${{ steps.dist-tag.outputs.tag }}
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          node scripts/changelog-section.mjs "$VERSION" > release-notes.md
+          if [[ "$VERSION" == *-* ]]; then
+            RELEASE_FLAG=--prerelease
+          else
+            RELEASE_FLAG=--latest
+          fi
+          gh release create "${{ github.ref_name }}" \
+            --title "${{ github.ref_name }}" \
+            --notes-file release-notes.md \
+            $RELEASE_FLAG
