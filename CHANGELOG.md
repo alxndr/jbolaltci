@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+## [0.2.0-rc.1] - 2026-08-15
+
 ### Changed
 
 - `publish.yml` now waits for `ci.yml` to complete successfully on the exact commit being tagged before publishing, instead of assuming it already did. A tag push and the push-to-`main` that usually precedes it are separate, unordered GitHub events, so nothing previously stopped a release from going out for a commit whose CI run (including the Playwright e2e suite and the Pages deploy it gates) hadn't finished, failed, or never ran at all.
@@ -39,6 +41,7 @@ First published release.
 - `LensiskuClient` now binds `fetch` to `globalThis`. A browser's native `fetch` throws `"Illegal invocation"` when called with an unbound reference; Node's `fetch` silently tolerated the same code.
 - `web/build.mjs` was printing `http://undefined:3100` for local dev — esbuild's `serve()` resolves with `{ hosts: string[] }`, not a singular `host`.
 
-[Unreleased]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.0...HEAD
+[Unreleased]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.1...HEAD
+[0.2.0-rc.1]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.0...v0.2.0-rc.1
 [0.2.0-rc.0]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-alpha...v0.2.0-rc.0
 [0.2.0-alpha]: https://github.com/alxndr/jbolaltci/releases/tag/v0.2.0-alpha
