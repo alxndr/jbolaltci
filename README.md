@@ -52,33 +52,37 @@ Supply your own `cache`/`client` to point at a different lensisku deployment, sw
 
 ## Web app
 
-A basic web page (plain HTML/CSS/JS, no framework or build step) backed by a small Express server:
+Runs entirely client-side (no backend at all) at **[alxndr.github.io/jbolaltci](https://alxndr.github.io/jbolaltci/)** — `analyze()`/`decomposeLujvo()` run directly in the browser and call lensisku's API straight from there (its CORS headers allow this). See `docs/architecture-decisions/001-client-side-cache-in-memory-first.md` for why it's structured this way rather than backed by a server.
 
 ```sh
-npm run dev:web    # http://localhost:3000, restarts on change
-npm run start:web  # same, without the watcher
+npm run build:web  # bundles web/main.ts + copies index.html/style.css/camxes.js/camxes_postproc.js into web/dist/
+npm run dev:web    # same, in watch mode, serving web/dist/ locally
 ```
 
-Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. A second section decomposes a lujvo into its rafsi and source gismu. `server/app.ts` exposes `POST /api/analyze` (`{ "text": string }` → the `AnalyzeResult` JSON) and `POST /api/decompose` (`{ "word": string }` → `{ "components": LujvoComponent[] }`), both returning `{ "error": {...} }` with a 400/500 status on failure; `server/public/` is the static frontend.
+Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
+
+`src/browser.ts` is a separate entry point from the Node-facing `src/index.ts`: it uses `MapDictionaryCache` (in-memory, not `better-sqlite3`, which is a native addon and can't run in a browser) and loads the camxes grammar from `window.camxes`/`window.camxes_postprocessing` globals (set by `<script>` tags in `web/index.html`) instead of Node's `createRequire`. `src/analyzeCore.ts` holds the platform-agnostic logic both entry points share.
 
 ## Development
 
 ```sh
-npm run test:unit  # vitest, offline — network-mocked and in-memory-cache tests only
+npm run test:unit    # vitest, offline — network-mocked and in-memory-cache tests only
 RUN_LIVE_TESTS=1 npm run test:unit -- test/live-smoke.test.ts   # also hits the real lensisku API
-npm run test:e2e   # e2e: drives a real browser against the real server + real lensisku
-npm test           # test:unit then test:e2e
-npm run typecheck
-npm run build      # ESM build + .d.ts via tsup, to dist/
+npm run test:e2e     # e2e: drives a real browser against the real client-side build + real lensisku
+npm test             # test:unit then test:e2e
+npm run typecheck      # src/ + test/ (Node)
+npm run typecheck:web  # web/ (browser DOM lib; kept as a separate tsconfig -- see web/tsconfig.json)
+npm run build          # library: ESM build + .d.ts via tsup, to dist/
 ```
 
-CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as two jobs — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there):
-1. `typecheck-and-unit`: typecheck, then vitest, on a plain `ubuntu-latest` runner.
+CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as three jobs — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there):
+1. `typecheck-and-unit`: both typechecks, then vitest, on a plain `ubuntu-latest` runner.
 2. `e2e` (only once that passes): Playwright, inside Microsoft's official `mcr.microsoft.com/playwright` container image (pinned to the exact `@playwright/test` version) so the browsers are already there instead of being downloaded every run. That image has no C/C++ toolchain, so the job installs `python3`/`build-essential` first — `better-sqlite3` needs to compile its native binding via `node-gyp`.
+3. `deploy` (push to `main` only, only once `e2e` passes): builds `web/` and publishes it to GitHub Pages via `actions/upload-pages-artifact` + `actions/deploy-pages`.
 
-No library build step in CI for now (nothing's being distributed/published yet), and no GitHub Pages deployment either: the app needs a running Node server (SQLite cache, live lensisku calls), which plain static Pages hosting can't run as-is.
+No library build step in CI (nothing on npm is being distributed/published yet).
 
-See `src/index.ts` for the full library export surface: `analyze`, `parseRaw`, `parseTrimmed`, `extractTerms`, `decomposeLujvo`, `LensiskuClient`, `SqliteDictionaryCache`, and their types.
+See `src/index.ts` (Node) / `src/browser.ts` (browser) for the full library export surface: `analyze`, `decomposeLujvo`, `extractTerms`, `LensiskuClient`, and their types, plus `parseRaw`/`parseTrimmed`/`SqliteDictionaryCache`/`MapDictionaryCache` where platform-appropriate.
 
 ## Attribution
 

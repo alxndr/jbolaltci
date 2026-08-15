@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { LojbanSyntaxError, parseTrimmed } from "../src/parser/camxes.js";
+import { parseTrimmed } from "../src/parser/camxes.node.js";
+import { LojbanSyntaxError } from "../src/parser/lojbanSyntaxError.js";
 
 describe("parseTrimmed", () => {
   it("parses a simple bridi into the trimmed selmaho-tagged tree", () => {

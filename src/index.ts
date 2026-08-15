@@ -7,7 +7,8 @@ export type {
   DictionaryLookup,
 } from "./analyze.js";
 
-export { LojbanSyntaxError, parseRaw, parseTrimmed } from "./parser/camxes.js";
+export { parseRaw, parseTrimmed } from "./parser/camxes.node.js";
+export { LojbanSyntaxError } from "./parser/lojbanSyntaxError.js";
 export { extractTerms } from "./parser/extractTerms.js";
 export type { Term, TrimmedNode } from "./parser/types.js";
 

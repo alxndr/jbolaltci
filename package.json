@@ -22,8 +22,10 @@
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
-    "dev:web": "tsx watch server/index.ts",
-    "start:web": "tsx server/index.ts"
+    "typecheck:web": "tsc --noEmit -p web/tsconfig.json",
+    "build:web": "node web/build.mjs",
+    "dev:web": "node web/build.mjs --watch --serve",
+    "serve:web": "node web/build.mjs --serve"
   },
   "keywords": [
     "lojban",
@@ -36,15 +38,13 @@
   "devDependencies": {
     "@playwright/test": "^1.62.1",
     "@types/better-sqlite3": "^9.6.0",
-    "@types/express": "^5.0.6",
     "@types/node": "^26.2.0",
+    "esbuild": "^0.28.2",
     "tsup": "^8.5.1",
-    "tsx": "^4.23.12",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3",
-    "express": "^5.2.1"
+    "better-sqlite3": "^13.0.3"
   }
 }

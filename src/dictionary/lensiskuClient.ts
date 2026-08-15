@@ -28,7 +28,11 @@ export class LensiskuClient {
 
   constructor(opts: LensiskuClientOptions = {}) {
     this.baseUrl = opts.baseUrl ?? DEFAULT_BASE_URL;
-    this.fetchImpl = opts.fetchImpl ?? fetch;
+    // Bind to globalThis: a browser's native fetch throws "Illegal invocation"
+    // if called with a receiver other than window (an unbound function
+    // reference loses that binding). Node's fetch doesn't require this, but
+    // binding is correct there too.
+    this.fetchImpl = opts.fetchImpl ?? fetch.bind(globalThis);
     this.timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 

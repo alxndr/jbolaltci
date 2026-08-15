@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { analyze } from "../src/analyze.js";
-import { LojbanSyntaxError } from "../src/parser/camxes.js";
+import { LojbanSyntaxError } from "../src/parser/lojbanSyntaxError.js";
 import type { DictionaryCache } from "../src/cache/cache.js";
 import type { Valsi, ValsiDefinition } from "../src/dictionary/types.js";
 

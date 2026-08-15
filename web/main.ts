@@ -1,25 +1,29 @@
-const form = document.getElementById("analyze-form");
-const textarea = document.getElementById("lojban-input");
-const errorBox = document.getElementById("error-message");
-const resultsTable = document.getElementById("results-table");
-const resultsBody = document.getElementById("results-body");
+import { analyze, decomposeLujvo, LojbanSyntaxError, NotLujvoError } from "../src/browser.js";
+import type { AnnotatedLujvoComponent, AnnotatedTerm } from "../src/browser.js";
+import type { ValsiDefinition } from "../src/browser.js";
 
-function showError(message) {
+const form = document.getElementById("analyze-form") as HTMLFormElement;
+const textarea = document.getElementById("lojban-input") as HTMLTextAreaElement;
+const errorBox = document.getElementById("error-message") as HTMLElement;
+const resultsTable = document.getElementById("results-table") as HTMLTableElement;
+const resultsBody = document.getElementById("results-body") as HTMLTableSectionElement;
+
+function showError(message: string): void {
   errorBox.textContent = message;
   errorBox.hidden = false;
   resultsTable.hidden = true;
 }
 
-function hideError() {
+function hideError(): void {
   errorBox.hidden = true;
   errorBox.textContent = "";
 }
 
-function englishDefinitionText(definitions) {
+function englishDefinitionText(definitions: readonly ValsiDefinition[]): string | null {
   return definitions.find((d) => d.langrealname === "English")?.definition ?? null;
 }
 
-function buildLujvoBreakdown(components) {
+function buildLujvoBreakdown(components: readonly AnnotatedLujvoComponent[]): HTMLUListElement {
   const list = document.createElement("ul");
   list.className = "lujvo-breakdown";
   for (const component of components) {
@@ -33,11 +37,11 @@ function buildLujvoBreakdown(components) {
   return list;
 }
 
-function capitalize(word) {
+function capitalize(word: string): string {
   return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
-function buildDefinitionCell(term) {
+function buildDefinitionCell(term: AnnotatedTerm): HTMLTableCellElement {
   const cell = document.createElement("td");
   const englishDefinition = englishDefinitionText(term.definitions);
 
@@ -56,7 +60,7 @@ function buildDefinitionCell(term) {
   return cell;
 }
 
-function renderResults(terms) {
+function renderResults(terms: readonly AnnotatedTerm[]): void {
   resultsBody.innerHTML = "";
   for (const term of terms) {
     const row = document.createElement("tr");
@@ -82,41 +86,35 @@ form.addEventListener("submit", async (event) => {
     return;
   }
 
-  let response;
   try {
-    response = await fetch("/api/analyze", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
-  } catch {
-    showError("Couldn't reach the server. Please try again.");
-    return;
+    const result = await analyze(text);
+    renderResults(result.terms);
+  } catch (err) {
+    if (err instanceof LojbanSyntaxError) {
+      showError(`${err.message} (line ${err.line}, column ${err.column})`);
+    } else {
+      showError(err instanceof Error ? err.message : String(err));
+    }
   }
-
-  const body = await response.json();
-  if (!response.ok) {
-    const location =
-      typeof body.error.line === "number" ? ` (line ${body.error.line}, column ${body.error.column})` : "";
-    showError(body.error.message + location);
-    return;
-  }
-
-  renderResults(body.terms);
 });
 
-const lujvoForm = document.getElementById("lujvo-form");
-const lujvoInput = document.getElementById("lujvo-input");
-const lujvoError = document.getElementById("lujvo-error");
-const lujvoResultsList = document.getElementById("lujvo-results-list");
+// The lujvo-decompose section is currently commented out in index.html;
+// guard against it being absent rather than throwing on load, while staying
+// ready to work again the moment that markup comes back.
+const lujvoForm = document.getElementById("lujvo-form") as HTMLFormElement | null;
+const lujvoInput = document.getElementById("lujvo-input") as HTMLInputElement | null;
+const lujvoError = document.getElementById("lujvo-error") as HTMLElement | null;
+const lujvoResultsList = document.getElementById("lujvo-results-list") as HTMLUListElement | null;
 
-function showLujvoError(message) {
+function showLujvoError(message: string): void {
+  if (!lujvoError || !lujvoResultsList) return;
   lujvoError.textContent = message;
   lujvoError.hidden = false;
   lujvoResultsList.hidden = true;
 }
 
-function renderLujvoComponents(components) {
+function renderLujvoComponents(components: readonly { rafsi: string; gismu: string | null }[]): void {
+  if (!lujvoResultsList) return;
   lujvoResultsList.innerHTML = "";
   for (const component of components) {
     const item = document.createElement("li");
@@ -126,8 +124,9 @@ function renderLujvoComponents(components) {
   lujvoResultsList.hidden = false;
 }
 
-lujvoForm.addEventListener("submit", async (event) => {
+lujvoForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (!lujvoInput || !lujvoError || !lujvoResultsList) return;
   lujvoError.hidden = true;
   lujvoResultsList.hidden = true;
 
@@ -137,23 +136,13 @@ lujvoForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  let response;
   try {
-    response = await fetch("/api/decompose", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ word }),
-    });
-  } catch {
-    showLujvoError("Couldn't reach the server. Please try again.");
-    return;
+    renderLujvoComponents(decomposeLujvo(word));
+  } catch (err) {
+    if (err instanceof NotLujvoError) {
+      showLujvoError(err.message);
+    } else {
+      showLujvoError(err instanceof Error ? err.message : String(err));
+    }
   }
-
-  const body = await response.json();
-  if (!response.ok) {
-    showLujvoError(body.error.message);
-    return;
-  }
-
-  renderLujvoComponents(body.components);
 });

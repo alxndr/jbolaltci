@@ -10,8 +10,8 @@
 
 ## ops
 
-* [ ] hook up testing to GitHub Actions CI
-    * [ ] modify the webapp to run client-side so it can be hosted via GitHub Pages
+* [x] hook up testing to GitHub Actions CI
+    * [x] modify the webapp to run client-side so it can be hosted via GitHub Pages
 
 * [ ] add linting?
 
