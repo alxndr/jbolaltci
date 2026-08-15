@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- `publish.yml` now waits for `ci.yml` to complete successfully on the exact commit being tagged before publishing, instead of assuming it already did. A tag push and the push-to-`main` that usually precedes it are separate, unordered GitHub events, so nothing previously stopped a release from going out for a commit whose CI run (including the Playwright e2e suite and the Pages deploy it gates) hadn't finished, failed, or never ran at all.
+
 ## [0.2.0-rc.0] - 2026-08-15
 
 ### Fixed

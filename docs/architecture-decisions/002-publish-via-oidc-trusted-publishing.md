@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-15
 
-**Status:** Accepted
+**Status:** Implemented
 
 
 ### Context
@@ -17,7 +17,7 @@ Options considered (the same three weighed in [alxndr/sparse-boolean-codec's ADR
 
 The same bootstrap constraint applies here as it did there: npm requires a package to already exist on the registry before Trusted Publishing can be configured for it, so the very first release has to be a manual, locally-authenticated `npm publish` regardless of which strategy handles releases afterward. Confirmed `jbolaltci` is unclaimed on the npm registry (as of this decision).
 
-Unlike sparse-boolean-codec at the time its ADR 004 was written, that bootstrap publish **has not happened yet** for this package -- publishing was explicitly deferred (prep the process now, actually publish later, as a separate deliberate step) rather than done as part of setting this up.
+Unlike sparse-boolean-codec at the time its ADR 004 was written, that bootstrap publish had not happened yet when this decision was first written up -- publishing was explicitly deferred (prep the process now, actually publish later, as a separate deliberate step) rather than done as part of setting this up. It has since happened: `0.2.0-alpha` was published manually to bootstrap the package, the Trusted Publisher was configured on npmjs.com, and `0.2.0-rc.0` published automatically through `publish.yml` -- confirming the whole path works end-to-end.
 
 
 ### Decision

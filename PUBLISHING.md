@@ -24,9 +24,9 @@ No npm token lives in this repo or on anyone's laptop; each publish is authentic
    git push && git push --tags
    ```
    Always use the `v` prefix -- `publish.yml` only triggers on tags matching `v*`. A tag created without it (including via GitHub's web UI, which doesn't enforce the prefix) won't trigger a publish.
-5. The `vX.Y.Z` tag push triggers `publish.yml`, which typechecks (both `typecheck` and `typecheck:web`), runs the unit tests, builds, publishes to npm, and creates the matching GitHub Release (title and tag both `vX.Y.Z`, notes pulled straight from that version's `CHANGELOG.md` section, marked prerelease/latest based on whether the version string has a `-` in it) -- watch it at https://github.com/alxndr/jbolaltci/actions.
+5. The `vX.Y.Z` tag push triggers `publish.yml`, which first waits for `ci.yml`'s run on that exact commit to finish and requires it to have succeeded (polls `gh run list --workflow=ci.yml --commit <sha>`, 15 min timeout) -- then typechecks (both `typecheck` and `typecheck:web`), runs the unit tests, builds, publishes to npm, and creates the matching GitHub Release (title and tag both `vX.Y.Z`, notes pulled straight from that version's `CHANGELOG.md` section, marked prerelease/latest based on whether the version string has a `-` in it) -- watch it at https://github.com/alxndr/jbolaltci/actions.
 
-   Note: `publish.yml` deliberately does **not** re-run the Playwright e2e suite -- it runs on a plain `ubuntu-latest` runner with no browsers installed, and `main` already passed `e2e` in `ci.yml` before you tagged it.
+   Note: `publish.yml` still deliberately does **not** run the Playwright e2e suite itself -- it runs on a plain `ubuntu-latest` runner with no browsers installed. Instead, since a tag push and the push-to-`main` that (usually) precedes it are separate, unordered events, the wait step above confirms `ci.yml` -- including its `e2e` job and the Pages `deploy` it gates -- actually ran and passed for this commit, rather than just assuming it did. If you tag a commit that was never pushed to `main` (so `ci.yml` never ran on it), this step times out after 15 minutes and the publish is refused.
 6. Confirm it's live: `npm view jbolaltci version`, or check https://www.npmjs.com/package/jbolaltci and https://github.com/alxndr/jbolaltci/releases.
 
 ## prerelease versions

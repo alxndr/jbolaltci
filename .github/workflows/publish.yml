@@ -8,12 +8,53 @@ on:
 permissions:
   id-token: write # required for npm Trusted Publishing (OIDC)
   contents: write # required to create the GitHub Release
+  actions: read # required to poll the CI workflow's run status below
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # A tag push is a separate, unordered event from the push-to-main that
+      # (usually) lands moments before it -- see the two near-simultaneous
+      # runs for 0.2.0-rc.0. Nothing else stops this workflow from publishing
+      # a commit that ci.yml hasn't validated yet (or never will, if it was
+      # never pushed to main at all), so wait for that run explicitly instead
+      # of assuming it happened.
+      - name: Wait for CI to pass on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SHA="${{ github.sha }}"
+          TIMEOUT_MINUTES=15
+          POLL_SECONDS=20
+          ELAPSED=0
+          echo "Waiting for the CI workflow to complete on commit $SHA..."
+          while true; do
+            RUN_JSON=$(gh run list --workflow=ci.yml --commit "$SHA" --json status,conclusion --limit 1)
+            STATUS=$(echo "$RUN_JSON" | jq -r '.[0].status // empty')
+            CONCLUSION=$(echo "$RUN_JSON" | jq -r '.[0].conclusion // empty')
+
+            if [ "$STATUS" = "completed" ]; then
+              if [ "$CONCLUSION" = "success" ]; then
+                echo "CI passed for $SHA."
+                break
+              fi
+              echo "::error::CI did not succeed for $SHA (conclusion: $CONCLUSION). Refusing to publish."
+              exit 1
+            fi
+
+            if [ "$ELAPSED" -ge $((TIMEOUT_MINUTES * 60)) ]; then
+              echo "::error::Timed out after ${TIMEOUT_MINUTES}m waiting for CI on $SHA (last status: ${STATUS:-none found -- was this commit ever pushed to main?})."
+              exit 1
+            fi
+
+            echo "CI status: ${STATUS:-not started yet}. Waiting ${POLL_SECONDS}s..."
+            sleep "$POLL_SECONDS"
+            ELAPSED=$((ELAPSED + POLL_SECONDS))
+          done
+
       - uses: actions/setup-node@v7
         with:
           node-version: 26
