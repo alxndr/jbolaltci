@@ -66,6 +66,21 @@ test("analyzing a sentence with an undocumented lujvo shows its decomposition in
   await expect(definitionCell).toContainText("tutci");
 });
 
+test("gismu place-structure placeholders like $x_1$ render as formatted subscripts, not raw markup", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("mi tavla do le jbolaltci");
+  await page.locator("#analyze-button").click();
+
+  const tavlaRow = page.locator("#results-body tr", { hasText: "tavla" });
+  await expect(tavlaRow).toBeVisible({ timeout: 15_000 });
+
+  const definitionCell = tavlaRow.locator("td").last();
+  await expect(definitionCell).not.toContainText("$x_");
+  const firstPlace = definitionCell.locator("i sub").first();
+  await expect(firstPlace).toHaveText("1");
+});
+
 test("analyzing a sentence with an undocumented name shows 'name: Capitalized' instead of 'no dictionary entry'", async ({ page }) => {
   await page.goto("/");
 

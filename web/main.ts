@@ -23,15 +23,48 @@ function englishDefinitionText(definitions: readonly ValsiDefinition[]): string 
   return definitions.find((d) => d.langrealname === "English")?.definition ?? null;
 }
 
+// lensisku's English definitions write place structure as raw LaTeX-ish
+// placeholders; render those as italic x with a subscript instead of
+// showing the markup verbatim. The brace form isn't consistently used
+// across entries -- e.g. "tavla" writes "$x_{1}$", "culno" writes "$x_1$"
+// -- so both need matching.
+const PLACE_PLACEHOLDER = /\$x_\{?(\d+)\}?\$/g;
+
+function appendFormattedDefinition(container: HTMLElement, text: string): void {
+  let lastIndex = 0;
+  for (const match of text.matchAll(PLACE_PLACEHOLDER)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) {
+      container.appendChild(document.createTextNode(text.slice(lastIndex, index)));
+    }
+    const place = document.createElement("i");
+    place.appendChild(document.createTextNode("x"));
+    const sub = document.createElement("sub");
+    sub.textContent = match[1] ?? "";
+    place.appendChild(sub);
+    container.appendChild(place);
+    lastIndex = index + match[0].length;
+  }
+  if (lastIndex < text.length) {
+    container.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
+}
+
 function buildLujvoBreakdown(components: readonly AnnotatedLujvoComponent[]): HTMLUListElement {
   const list = document.createElement("ul");
   list.className = "lujvo-breakdown";
   for (const component of components) {
     const item = document.createElement("li");
     const gloss = component.gismu ? englishDefinitionText(component.definitions) : null;
-    item.textContent = component.gismu
-      ? `${component.rafsi} → ${component.gismu}${gloss ? `: ${gloss}` : ""}`
-      : component.rafsi;
+    if (component.gismu) {
+      item.appendChild(document.createTextNode(`${component.rafsi} → ${component.gismu}`));
+      if (gloss) {
+        item.appendChild(document.createTextNode(": "));
+        appendFormattedDefinition(item, gloss);
+      }
+    } else {
+      item.appendChild(document.createTextNode(component.rafsi));
+    }
     list.appendChild(item);
   }
   return list;
@@ -46,7 +79,7 @@ function buildDefinitionCell(term: AnnotatedTerm): HTMLTableCellElement {
   const englishDefinition = englishDefinitionText(term.definitions);
 
   if (englishDefinition) {
-    cell.textContent = englishDefinition;
+    appendFormattedDefinition(cell, englishDefinition);
   } else if (term.valsi) {
     cell.textContent = "";
   } else if (term.lujvoComponents) {

@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- The web app now renders lensisku's `$x_1$`-style place-structure placeholders (inconsistently written as `$x_1$` or `$x_{1}$` depending on the entry) as a formatted "*x*₁" instead of showing the raw markup.
 - `ci.yml`'s `e2e` job now caches `node_modules` (keyed on the Playwright image tag + `package-lock.json`), skipping both the `apt-get install` of build tools and `npm ci`'s native compile step on unchanged dependencies. `better-sqlite3` ships prebuilt binaries, but `npm ci` was still forcing a `node-gyp rebuild` regardless of that (confirmed by running the exact CI image locally without the build tools installed -- it doesn't check for a matching prebuild before trying to compile), which is what made that install step take ~3 minutes on every run.
 
 ## [0.2.0-rc.1] - 2026-08-15
