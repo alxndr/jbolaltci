@@ -10,9 +10,7 @@
 
 ## ops
 
-* [x] hook up testing to GitHub Actions CI
-    * [x] modify the webapp to run client-side so it can be hosted via GitHub Pages
-
 * [ ] add linting?
+    * decide whether to use biome or oxlint…
 
 * [ ] look into newer version of TypeScript
