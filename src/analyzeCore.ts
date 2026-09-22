@@ -2,6 +2,7 @@ import type { DictionaryCache } from "./cache/cache.js";
 import type { Valsi, ValsiDefinition } from "./dictionary/types.js";
 import { decomposeLujvo, NotLujvoError } from "./lujvo/decompose.js";
 import type { LujvoComponent } from "./lujvo/decompose.js";
+import { LojbanSyntaxError } from "./parser/lojbanSyntaxError.js";
 import { extractTerms } from "./parser/extractTerms.js";
 import type { Term, TrimmedNode } from "./parser/types.js";
 
@@ -31,6 +32,12 @@ export interface AnalyzeResult {
   readonly input: string;
   readonly parseTree: TrimmedNode[];
   readonly terms: AnnotatedTerm[];
+  /** True if standard camxes rejected this input and camxes-exp (see ADR
+   * 003) parsed it instead. camxes-exp isn't purely additive vocabulary --
+   * it carries real grammar changes of its own -- so a true here means the
+   * whole parse, not just whatever experimental cmavo triggered the
+   * fallback, may not match standard Lojban grammar. */
+  readonly usedExperimentalGrammar: boolean;
 }
 
 export interface AnalyzeOptions {
@@ -42,9 +49,13 @@ export interface AnalyzeOptions {
 
 /** Platform-specific dependencies analyzeCore() needs but doesn't default
  * itself -- each platform wrapper (analyze.ts for Node, browser.ts for the
- * browser) supplies its own parseTrimmed/cache/client. */
+ * browser) supplies its own parseTrimmed/parseTrimmedExperimental/cache/client. */
 export interface AnalyzeCoreDeps {
   readonly parseTrimmed: (text: string) => TrimmedNode[];
+  /** Omit to disable the experimental-cmavo fallback entirely (see ADR 003) --
+   * ungrammatical-per-camxes-exp-too input then throws parseTrimmed's error
+   * as before, with no fallback attempt. */
+  readonly parseTrimmedExperimental?: (text: string) => TrimmedNode[];
   readonly cache: DictionaryCache;
   readonly client: DictionaryLookup;
   readonly includeDefinitions?: boolean;
@@ -66,7 +77,7 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
   const { parseTrimmed, cache, client } = deps;
   const includeDefinitions = deps.includeDefinitions ?? true;
 
-  const parseTree = parseTrimmed(text);
+  const { parseTree, usedExperimentalGrammar } = parseWithFallback(text, deps);
   const terms = extractTerms(parseTree);
 
   const uniqueWords = [...new Set(terms.map((term) => term.word))];
@@ -127,7 +138,29 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
     };
   });
 
-  return { input: text, parseTree, terms: annotatedTerms };
+  return { input: text, parseTree, terms: annotatedTerms, usedExperimentalGrammar };
+}
+
+/** Tries the standard grammar first; only on a LojbanSyntaxError, and only if
+ * deps.parseTrimmedExperimental was supplied, retries with camxes-exp (ADR
+ * 003). If that also fails, re-throws the *standard* grammar's error -- it's
+ * the more useful message for genuinely invalid input, since camxes-exp's
+ * error wording/position can differ for reasons unrelated to what the caller
+ * actually got wrong. */
+function parseWithFallback(
+  text: string,
+  deps: Pick<AnalyzeCoreDeps, "parseTrimmed" | "parseTrimmedExperimental">,
+): { parseTree: TrimmedNode[]; usedExperimentalGrammar: boolean } {
+  try {
+    return { parseTree: deps.parseTrimmed(text), usedExperimentalGrammar: false };
+  } catch (err) {
+    if (!(err instanceof LojbanSyntaxError) || !deps.parseTrimmedExperimental) throw err;
+    try {
+      return { parseTree: deps.parseTrimmedExperimental(text), usedExperimentalGrammar: true };
+    } catch {
+      throw err;
+    }
+  }
 }
 
 async function lookupWord(

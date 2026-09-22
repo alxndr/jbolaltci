@@ -81,6 +81,36 @@ test("gismu place-structure placeholders like $x_1$ render as formatted subscrip
   await expect(firstPlace).toHaveText("1");
 });
 
+test("analyzing an experimental cmavo the standard grammar rejects falls back to camxes-exp, with a notice", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.locator("#experimental-grammar-notice")).toBeHidden();
+
+  await page.locator("#lojban-input").fill("mi tavla do ue'i");
+  await page.locator("#analyze-button").click();
+
+  const notice = page.locator("#experimental-grammar-notice");
+  await expect(notice).toBeVisible({ timeout: 15_000 });
+  await expect(notice).toContainText("experimental");
+  await expect(page.locator("#error-message")).toBeHidden();
+
+  const uiRow = page.locator("#results-body tr", { hasText: "ue'i" });
+  await expect(uiRow).toBeVisible();
+  await expect(uiRow).toContainText("UI");
+});
+
+test("the experimental-grammar notice clears after a subsequent standard-grammar analysis", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("ue'i");
+  await page.locator("#analyze-button").click();
+  await expect(page.locator("#experimental-grammar-notice")).toBeVisible({ timeout: 15_000 });
+
+  await page.locator("#lojban-input").fill("ti melbi");
+  await page.locator("#analyze-button").click();
+  await expect(page.locator("#experimental-grammar-notice")).toBeHidden();
+});
+
 test("analyzing a sentence with an undocumented name shows 'name: Capitalized' instead of 'no dictionary entry'", async ({ page }) => {
   await page.goto("/");
 

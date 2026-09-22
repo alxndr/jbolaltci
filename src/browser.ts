@@ -2,7 +2,7 @@ import { MapDictionaryCache } from "./cache/mapCache.js";
 import { LensiskuClient } from "./dictionary/lensiskuClient.js";
 import { analyzeCore } from "./analyzeCore.js";
 import type { AnalyzeOptions, AnalyzeResult } from "./analyzeCore.js";
-import { parseTrimmed } from "./parser/camxes.browser.js";
+import { parseTrimmed, parseTrimmedExperimental } from "./parser/camxes.browser.js";
 
 export type {
   AnalyzeOptions,
@@ -12,7 +12,7 @@ export type {
   DictionaryLookup,
 } from "./analyzeCore.js";
 
-export { parseRaw, parseTrimmed } from "./parser/camxes.browser.js";
+export { parseRaw, parseTrimmed, parseTrimmedExperimental } from "./parser/camxes.browser.js";
 export { LojbanSyntaxError } from "./parser/lojbanSyntaxError.js";
 export { extractTerms } from "./parser/extractTerms.js";
 export type { Term, TrimmedNode } from "./parser/types.js";
@@ -34,5 +34,11 @@ export type { LujvoComponent } from "./lujvo/decompose.js";
 export async function analyze(text: string, opts: AnalyzeOptions = {}): Promise<AnalyzeResult> {
   const cache = opts.cache ?? new MapDictionaryCache();
   const client = opts.client ?? new LensiskuClient();
-  return analyzeCore(text, { parseTrimmed, cache, client, includeDefinitions: opts.includeDefinitions });
+  return analyzeCore(text, {
+    parseTrimmed,
+    parseTrimmedExperimental,
+    cache,
+    client,
+    includeDefinitions: opts.includeDefinitions,
+  });
 }

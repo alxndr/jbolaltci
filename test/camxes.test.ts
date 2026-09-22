@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTrimmed } from "../src/parser/camxes.node.js";
+import { parseTrimmed, parseTrimmedExperimental } from "../src/parser/camxes.node.js";
 import { LojbanSyntaxError } from "../src/parser/lojbanSyntaxError.js";
 
 describe("parseTrimmed", () => {
@@ -33,5 +33,16 @@ describe("parseTrimmed", () => {
       expect(e.column).toBe(4);
       expect(e.found).toBe("#");
     }
+  });
+});
+
+describe("parseTrimmedExperimental", () => {
+  it("parses an experimental cmavo that the standard grammar rejects", () => {
+    expect(() => parseTrimmed("ue'i")).toThrow(LojbanSyntaxError);
+    expect(parseTrimmedExperimental("ue'i")).toEqual("UI:ue'i");
+  });
+
+  it("still throws a LojbanSyntaxError on input that's invalid under camxes-exp too", () => {
+    expect(() => parseTrimmedExperimental("...###invalid###...")).toThrow(LojbanSyntaxError);
   });
 });

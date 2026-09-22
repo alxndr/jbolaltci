@@ -5,6 +5,8 @@
   --border: #ccc;
   --error-bg: #fdecea;
   --error-fg: #8a1f11;
+  --notice-bg: #fff8e1;
+  --notice-fg: #6b5300;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -14,6 +16,8 @@
     --border: #444;
     --error-bg: #3a1a17;
     --error-fg: #ff9d91;
+    --notice-bg: #3a3117;
+    --notice-fg: #f0d878;
   }
 }
 
@@ -64,6 +68,14 @@ ul li {
   color: var(--error-fg);
   padding: 0.75rem;
   border-radius: 0.25rem;
+}
+
+#experimental-grammar-notice {
+  background: var(--notice-bg);
+  color: var(--notice-fg);
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.9em;
 }
 
 #lujvo-results-list {

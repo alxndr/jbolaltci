@@ -29,12 +29,12 @@ decomposeLujvo("jbolaltci");
 ```
 
 `analyze()`:
-1. Parses the text with the canonical `camxes.peg` grammar (vendored, MIT-licensed, from `lojban/ilmentufa`).
+1. Parses the text with the canonical `camxes.peg` grammar (vendored, MIT-licensed, from `lojban/ilmentufa`). If that fails and the input parses under `camxes-exp` instead (same repo's experimental grammar variant, which recognizes lensisku's `"experimental cmavo"` like `ue'i` that the canonical grammar doesn't), uses that result instead and sets `usedExperimentalGrammar: true` — see [ADR 003](./docs/architecture-decisions/003-experimental-cmavo-via-camxes-exp-fallback.md) for why that's flagged rather than silent (`camxes-exp` isn't purely additive vocabulary; it carries some real grammar changes of its own).
 2. Walks the resulting parse tree into an ordered list of words, each tagged with its selma'o (word class).
 3. Looks up each distinct word against a local cache first (a SQLite file at `~/.cache/jbolaltci/dictionary.sqlite` by default), falling back to a live call to lensisku's public JSON API on a cache miss, and writes the result back to the cache.
 4. For a lujvo term with no dictionary entry of its own (selma'o `L`, `valsi` null), decomposes it and looks up each component gismu's definitions too, exposed as `term.lujvoComponents` (null otherwise — including for a lujvo that *does* have its own entry, where decomposing it would be redundant).
 
-Throws `LojbanSyntaxError` (with `.expected`/`.found`/`.line`/`.column`) if the input isn't grammatical Lojban.
+Throws `LojbanSyntaxError` (with `.expected`/`.found`/`.line`/`.column`) if the input isn't grammatical Lojban under either grammar.
 
 `decomposeLujvo()` breaks a lujvo down into its rafsi, each resolved back to the gismu it came from where unambiguous (ported from [latkerlo/latkerlo-jvotci](https://github.com/latkerlo/latkerlo-jvotci)). Throws `NotLujvoError` if the word isn't a decomposable lujvo (a plain gismu, a cmavo, or not a lojban word at all).
 
@@ -55,13 +55,13 @@ Supply your own `cache`/`client` to point at a different lensisku deployment, sw
 Runs entirely client-side (no backend at all) at **[alxndr.github.io/jbolaltci](https://alxndr.github.io/jbolaltci/)** — `analyze()`/`decomposeLujvo()` run directly in the browser and call lensisku's API straight from there (its CORS headers allow this). See `docs/architecture-decisions/001-client-side-cache-in-memory-first.md` for why it's structured this way rather than backed by a server.
 
 ```sh
-npm run build:web  # bundles web/main.ts + copies index.html/style.css/camxes.js/camxes_postproc.js into web/dist/
+npm run build:web  # bundles web/main.ts + copies index.html/style.css/camxes.js/camxes_postproc.js/camxes-exp.js into web/dist/
 npm run dev:web    # same, in watch mode, serving web/dist/ locally
 ```
 
 Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
 
-`src/browser.ts` is a separate entry point from the Node-facing `src/index.ts`: it uses `MapDictionaryCache` (in-memory, not `better-sqlite3`, which is a native addon and can't run in a browser) and loads the camxes grammar from `window.camxes`/`window.camxes_postprocessing` globals (set by `<script>` tags in `web/index.html`) instead of Node's `createRequire`. `src/analyzeCore.ts` holds the platform-agnostic logic both entry points share.
+`src/browser.ts` is a separate entry point from the Node-facing `src/index.ts`: it uses `MapDictionaryCache` (in-memory, not `better-sqlite3`, which is a native addon and can't run in a browser) and loads the camxes grammar from `window.camxes`/`window.camxes_postprocessing`/`window.camxes_exp` globals (set by `<script>` tags in `web/index.html`) instead of Node's `createRequire`. `src/analyzeCore.ts` holds the platform-agnostic logic both entry points share.
 
 ## Development
 
@@ -82,10 +82,10 @@ CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as three jobs �
 
 No library build step in CI (nothing on npm is being distributed/published yet).
 
-See `src/index.ts` (Node) / `src/browser.ts` (browser) for the full library export surface: `analyze`, `decomposeLujvo`, `extractTerms`, `LensiskuClient`, and their types, plus `parseRaw`/`parseTrimmed`/`SqliteDictionaryCache`/`MapDictionaryCache` where platform-appropriate.
+See `src/index.ts` (Node) / `src/browser.ts` (browser) for the full library export surface: `analyze`, `decomposeLujvo`, `extractTerms`, `LensiskuClient`, and their types, plus `parseRaw`/`parseTrimmed`/`parseTrimmedExperimental`/`SqliteDictionaryCache`/`MapDictionaryCache` where platform-appropriate.
 
 ## Attribution
 
-- `vendor/ilmentufa/camxes.js` and `camxes_postproc.js` are vendored verbatim from [lojban/ilmentufa](https://github.com/lojban/ilmentufa) under MIT license (see `vendor/ilmentufa/LICENSE` and `NOTICE.md`).
+- `vendor/ilmentufa/camxes.js`, `camxes_postproc.js`, and `camxes-exp.js` are vendored verbatim from [lojban/ilmentufa](https://github.com/lojban/ilmentufa) under MIT license (see `vendor/ilmentufa/LICENSE` and `NOTICE.md`).
 - `vendor/latkerlo-jvotci/*.ts` are ported (converted to ES modules; no logic changes) from [latkerlo/latkerlo-jvotci](https://github.com/latkerlo/latkerlo-jvotci), under mixed MIT/Apache-2.0 terms — see `vendor/latkerlo-jvotci/NOTICE.md` for the full breakdown.
 - All dictionary data comes from [lensisku.lojban.org](https://lensisku.lojban.org), which states its content is public domain.

@@ -45,4 +45,12 @@ describe.skipIf(!runLiveTests)("live lensisku API", () => {
     const lojban = result.terms.find((term) => term.word === "lojban");
     expect(lojban).toBeDefined();
   });
+
+  it("analyze() falls back to camxes-exp for a real experimental cmavo and still resolves its lensisku entry", async () => {
+    const result = await analyze("ue'i", { cache: new InMemoryCache() });
+
+    expect(result.usedExperimentalGrammar).toBe(true);
+    const term = result.terms.find((term) => term.word === "ue'i");
+    expect(term?.valsi?.type_name).toBe("experimental cmavo");
+  });
 });

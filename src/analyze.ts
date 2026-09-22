@@ -2,7 +2,7 @@ import { SqliteDictionaryCache } from "./cache/sqliteCache.js";
 import { LensiskuClient } from "./dictionary/lensiskuClient.js";
 import { analyzeCore } from "./analyzeCore.js";
 import type { AnalyzeOptions, AnalyzeResult } from "./analyzeCore.js";
-import { parseTrimmed } from "./parser/camxes.node.js";
+import { parseTrimmed, parseTrimmedExperimental } from "./parser/camxes.node.js";
 
 export type {
   AnalyzeOptions,
@@ -18,5 +18,11 @@ export type {
 export async function analyze(text: string, opts: AnalyzeOptions = {}): Promise<AnalyzeResult> {
   const cache = opts.cache ?? new SqliteDictionaryCache();
   const client = opts.client ?? new LensiskuClient();
-  return analyzeCore(text, { parseTrimmed, cache, client, includeDefinitions: opts.includeDefinitions });
+  return analyzeCore(text, {
+    parseTrimmed,
+    parseTrimmedExperimental,
+    cache,
+    client,
+    includeDefinitions: opts.includeDefinitions,
+  });
 }

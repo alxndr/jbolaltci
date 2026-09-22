@@ -5,6 +5,7 @@ import type { ValsiDefinition } from "../src/browser.js";
 const form = document.getElementById("analyze-form") as HTMLFormElement;
 const textarea = document.getElementById("lojban-input") as HTMLTextAreaElement;
 const errorBox = document.getElementById("error-message") as HTMLElement;
+const experimentalGrammarNotice = document.getElementById("experimental-grammar-notice") as HTMLElement;
 const resultsTable = document.getElementById("results-table") as HTMLTableElement;
 const resultsBody = document.getElementById("results-body") as HTMLTableSectionElement;
 
@@ -17,6 +18,18 @@ function showError(message: string): void {
 function hideError(): void {
   errorBox.hidden = true;
   errorBox.textContent = "";
+}
+
+// camxes-exp isn't purely additive vocabulary -- it carries real grammar
+// changes of its own (see docs/architecture-decisions/003) -- so a result
+// that used it may not match standard Lojban grammar beyond just the word
+// that triggered the fallback. Surface that rather than presenting it as an
+// ordinary result.
+function setExperimentalGrammarNotice(used: boolean): void {
+  experimentalGrammarNotice.textContent = used
+    ? "This includes an experimental cmavo not in standard Lojban -- the rest of this parse may not match standard grammar either."
+    : "";
+  experimentalGrammarNotice.hidden = !used;
 }
 
 function englishDefinitionText(definitions: readonly ValsiDefinition[]): string | null {
@@ -111,6 +124,7 @@ function renderResults(terms: readonly AnnotatedTerm[]): void {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideError();
+  setExperimentalGrammarNotice(false);
   resultsTable.hidden = true;
 
   const text = textarea.value.trim();
@@ -121,6 +135,7 @@ form.addEventListener("submit", async (event) => {
 
   try {
     const result = await analyze(text);
+    setExperimentalGrammarNotice(result.usedExperimentalGrammar);
     renderResults(result.terms);
   } catch (err) {
     if (err instanceof LojbanSyntaxError) {

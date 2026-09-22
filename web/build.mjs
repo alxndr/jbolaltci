@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, rmSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
@@ -23,6 +23,18 @@ function copyStaticAssets() {
   for (const file of ["camxes.js", "camxes_postproc.js"]) {
     cpSync(join(root, "vendor", "ilmentufa", file), join(outdir, file));
   }
+  writeWrappedExperimentalGrammar();
+}
+
+// camxes-exp.js declares the same top-level `var camxes` as camxes.js does,
+// so loading it as a second plain <script> would silently clobber
+// window.camxes. Wrap the vendored file's own text (unmodified) in an IIFE
+// so that `var` stays function-scoped, and expose the result as
+// window.camxes_exp instead -- see src/parser/camxes.browser.ts.
+function writeWrappedExperimentalGrammar() {
+  const source = readFileSync(join(root, "vendor", "ilmentufa", "camxes-exp.js"), "utf8");
+  const wrapped = `(function () {\n${source}\nwindow.camxes_exp = camxes;\n})();\n`;
+  writeFileSync(join(outdir, "camxes-exp.js"), wrapped);
 }
 
 const buildOptions = {

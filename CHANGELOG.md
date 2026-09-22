@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- `analyze()` now falls back to [`camxes-exp`](https://github.com/lojban/ilmentufa) (vendored alongside the canonical grammar) when standard parsing rejects input, so words lensisku tags `"experimental cmavo"` (e.g. `ue'i`) are recognized instead of failing outright. Since `camxes-exp` carries real grammar changes beyond vocabulary, not just additional words, a fallback result is flagged via `AnalyzeResult.usedExperimentalGrammar` rather than presented as an ordinary parse -- the web UI shows a notice when it's used. See [ADR 003](./docs/architecture-decisions/003-experimental-cmavo-via-camxes-exp-fallback.md).
+
 ### Changed
 
 - The web app now renders lensisku's `$x_1$`-style place-structure placeholders (inconsistently written as `$x_1$` or `$x_{1}$` depending on the entry) as a formatted "*x*₁" instead of showing the raw markup.

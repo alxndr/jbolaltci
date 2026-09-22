@@ -136,6 +136,42 @@ describe("analyze", () => {
     expect(client.getValsi).not.toHaveBeenCalled();
   });
 
+  it("sets usedExperimentalGrammar: false for input the standard grammar already accepts", async () => {
+    const cache = new FakeCache();
+    const client = fakeClient();
+
+    const result = await analyze("ti melbi", { cache, client });
+
+    expect(result.usedExperimentalGrammar).toBe(false);
+  });
+
+  it("falls back to camxes-exp for an experimental cmavo the standard grammar rejects, flagging the result", async () => {
+    const cache = new FakeCache();
+    const client = fakeClient();
+
+    const result = await analyze("ue'i", { cache, client });
+
+    expect(result.usedExperimentalGrammar).toBe(true);
+    expect(result.terms).toEqual([
+      {
+        index: 0,
+        selmaho: "UI",
+        word: "ue'i",
+        valsi: fakeValsi("ue'i", 1),
+        definitions: fakeDefinitions("ue'i"),
+        lujvoComponents: null,
+      },
+    ]);
+  });
+
+  it("still throws LojbanSyntaxError, without calling the client, for input invalid under camxes-exp too", async () => {
+    const cache = new FakeCache();
+    const client = fakeClient();
+
+    await expect(analyze("...###invalid###...", { cache, client })).rejects.toThrow(LojbanSyntaxError);
+    expect(client.getValsi).not.toHaveBeenCalled();
+  });
+
   it("decomposes an undocumented lujvo term and looks up each component gismu's definitions", async () => {
     const cache = new FakeCache();
     const client = fakeClient({

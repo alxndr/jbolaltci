@@ -31,28 +31,44 @@ function resolveVendorFile(fileName: string): string {
 }
 
 const camxes = require(resolveVendorFile("camxes.js")) as Camxes;
+const camxesExp = require(resolveVendorFile("camxes-exp.js")) as Camxes;
 const postproc = require(resolveVendorFile("camxes_postproc.js")) as CamxesPostproc;
 
 /** Mode passed to camxes_postproc: keep word classes (C) and terminators (T),
  * emit as JSON (J) rather than the pretty-printed bracket notation. */
 const POSTPROC_MODE = "CTJ";
 
+function parseRawWith(grammar: Camxes, text: string): unknown {
+  try {
+    return grammar.parse(text);
+  } catch (err) {
+    if (err instanceof grammar.SyntaxError) throw new LojbanSyntaxError(err);
+    throw err;
+  }
+}
+
+function parseTrimmedWith(grammar: Camxes, text: string): TrimmedNode[] {
+  const raw = parseRawWith(grammar, text);
+  const json = postproc.postprocess(raw, POSTPROC_MODE);
+  return JSON.parse(json) as TrimmedNode[];
+}
+
 /** Parses Lojban text into camxes' raw, untrimmed parse tree. Throws
  * LojbanSyntaxError if the text is not grammatical Lojban. */
 export function parseRaw(text: string): unknown {
-  try {
-    return camxes.parse(text);
-  } catch (err) {
-    if (err instanceof camxes.SyntaxError) throw new LojbanSyntaxError(err);
-    throw err;
-  }
+  return parseRawWith(camxes, text);
 }
 
 /** Parses Lojban text and returns the trimmed tree: nested arrays whose
  * leaves are either "SELMAHO:word" or a bare selmaho for an elided
  * terminator. Throws LojbanSyntaxError if the text is not grammatical. */
 export function parseTrimmed(text: string): TrimmedNode[] {
-  const raw = parseRaw(text);
-  const json = postproc.postprocess(raw, POSTPROC_MODE);
-  return JSON.parse(json) as TrimmedNode[];
+  return parseTrimmedWith(camxes, text);
+}
+
+/** Same as parseTrimmed, but against camxes-exp -- see
+ * docs/architecture-decisions/003 for why this is a separate, fallback-only
+ * entry point rather than folded into parseTrimmed itself. */
+export function parseTrimmedExperimental(text: string): TrimmedNode[] {
+  return parseTrimmedWith(camxesExp, text);
 }
