@@ -77,10 +77,10 @@ npm run build          # library: ESM build + .d.ts via tsup, to dist/
 
 CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as three jobs — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there):
 1. `typecheck-and-unit`: both typechecks, then vitest, on a plain `ubuntu-latest` runner.
-2. `e2e` (only once that passes): Playwright, inside Microsoft's official `mcr.microsoft.com/playwright` container image (pinned to the exact `@playwright/test` version) so the browsers are already there instead of being downloaded every run. That image has no C/C++ toolchain, so the job installs `python3`/`build-essential` first — `better-sqlite3` needs to compile its native binding via `node-gyp`.
+2. `e2e` (only once that passes): Playwright, inside Microsoft's official `mcr.microsoft.com/playwright` container image (pinned to the exact `@playwright/test` version) so the browsers are already there instead of being downloaded every run. That image has no C/C++ toolchain, and `better-sqlite3` needs one to compile its native binding via `node-gyp` — despite it shipping prebuilt binaries, `npm ci` doesn't check for a matching one before trying to compile regardless. `node_modules` is cached (keyed on the image tag + `package-lock.json`), so both that native-toolchain install and the compile step are only paid again when dependencies actually change, not on every run.
 3. `deploy` (push to `main` only, only once `e2e` passes): builds `web/` and publishes it to GitHub Pages via `actions/upload-pages-artifact` + `actions/deploy-pages`.
 
-No library build step in CI (nothing on npm is being distributed/published yet).
+No library build/publish step in `ci.yml` — the npm package is published separately, via `.github/workflows/publish.yml` on a `vX.Y.Z` tag push, using npm Trusted Publishing (OIDC). See `PUBLISHING.md` for the full release process.
 
 See `src/index.ts` (Node) / `src/browser.ts` (browser) for the full library export surface: `analyze`, `decomposeLujvo`, `extractTerms`, `LensiskuClient`, and their types, plus `parseRaw`/`parseTrimmed`/`parseTrimmedExperimental`/`SqliteDictionaryCache`/`MapDictionaryCache` where platform-appropriate.
 
