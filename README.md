@@ -8,6 +8,16 @@ Parses Lojban text with the [camxes](https://github.com/lojban/ilmentufa) gramma
 
 ## Install
 
+As a dependency:
+
+```sh
+npm install jbolaltci
+```
+
+Still pre-1.0 -- expect breaking changes between releases. See `CHANGELOG.md` for what's shipped, and `PUBLISHING.md` for how dist-tags (`latest`/`alpha`/`rc`/...) map to versions.
+
+To build from a local clone instead:
+
 ```sh
 npm install
 npm run build
