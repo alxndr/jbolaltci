@@ -7,10 +7,18 @@ export type {
   DictionaryLookup,
 } from "./analyze.js";
 
-export { parseRaw, parseTrimmed, parseTrimmedExperimental } from "./parser/camxes.node.js";
+export {
+  parseRaw,
+  parseTrimmed,
+  parseTrimmedExperimental,
+  parseLabeledTree,
+  parseLabeledTreeExperimental,
+} from "./parser/camxes.node.js";
 export { LojbanSyntaxError } from "./parser/lojbanSyntaxError.js";
 export { extractTerms } from "./parser/extractTerms.js";
-export type { Term, TrimmedNode } from "./parser/types.js";
+export { parseWithFallback } from "./parser/parseWithFallback.js";
+export { LABELED_NODE_ROLES } from "./parser/types.js";
+export type { LabeledNodeRole, Term, TrimmedNode } from "./parser/types.js";
 
 export { LensiskuApiError, LensiskuClient } from "./dictionary/lensiskuClient.js";
 export type { LensiskuClientOptions } from "./dictionary/lensiskuClient.js";

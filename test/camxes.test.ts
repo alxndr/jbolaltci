@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseTrimmed, parseTrimmedExperimental } from "../src/parser/camxes.node.js";
+import {
+  parseLabeledTree,
+  parseLabeledTreeExperimental,
+  parseTrimmed,
+  parseTrimmedExperimental,
+} from "../src/parser/camxes.node.js";
 import { LojbanSyntaxError } from "../src/parser/lojbanSyntaxError.js";
 
 describe("parseTrimmed", () => {
@@ -44,5 +49,41 @@ describe("parseTrimmedExperimental", () => {
 
   it("still throws a LojbanSyntaxError on input that's invalid under camxes-exp too", () => {
     expect(() => parseTrimmedExperimental("...###invalid###...")).toThrow(LojbanSyntaxError);
+  });
+});
+
+describe("parseLabeledTree", () => {
+  it("keeps BRIDI/SELBRI/SUMTI grammatical-role labels that parseTrimmed trims away", () => {
+    expect(parseLabeledTree("ti melbi")).toEqual([
+      "BRIDI",
+      [["SUMTI:", "KOhA:ti"], "CU"],
+      [["SELBRI:", "G:melbi"], "VAU"],
+    ]);
+  });
+
+  it("labels nested sumti/selbri too, for a sentence with sumti tail and a name", () => {
+    expect(parseLabeledTree("mi tavla do fi la .lojban.")).toEqual([
+      "BRIDI",
+      [["SUMTI:", "KOhA:mi"], "CU"],
+      [
+        ["SELBRI:", "G:tavla"],
+        [[["SUMTI:", "KOhA:do"], ["FA:fi", ["SUMTI", ["LA:la", "C:lojban"]]]], "VAU"],
+      ],
+    ]);
+  });
+
+  it("still labels a bare standalone sumti even with no selbri around it", () => {
+    expect(parseLabeledTree("ti")).toEqual([["SUMTI:", "KOhA:ti"], "VAU"]);
+  });
+
+  it("throws a LojbanSyntaxError on ungrammatical input, same as parseTrimmed", () => {
+    expect(() => parseLabeledTree("...###invalid###...")).toThrow(LojbanSyntaxError);
+  });
+});
+
+describe("parseLabeledTreeExperimental", () => {
+  it("parses an experimental cmavo that the standard grammar rejects", () => {
+    expect(() => parseLabeledTree("ue'i")).toThrow(LojbanSyntaxError);
+    expect(parseLabeledTreeExperimental("ue'i")).toEqual("UI:ue'i");
   });
 });

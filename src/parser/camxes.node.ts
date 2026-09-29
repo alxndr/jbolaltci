@@ -34,9 +34,14 @@ const camxes = require(resolveVendorFile("camxes.js")) as Camxes;
 const camxesExp = require(resolveVendorFile("camxes-exp.js")) as Camxes;
 const postproc = require(resolveVendorFile("camxes_postproc.js")) as CamxesPostproc;
 
-/** Mode passed to camxes_postproc: keep word classes (C) and terminators (T),
- * emit as JSON (J) rather than the pretty-printed bracket notation. */
+/** Modes passed to camxes_postproc. Both keep word classes (C) and
+ * terminators (T), and emit as JSON (J) rather than the pretty-printed
+ * bracket notation. The labeled mode also adds "N" (node labels), which
+ * additionally preserves BRIDI/SELBRI/SUMTI/PRENEX grammatical-role wrapper
+ * nodes that the plain mode trims away -- see LABELED_NODE_ROLES and the
+ * "nesting" visualization in web/main.ts. */
 const POSTPROC_MODE = "CTJ";
+const LABELED_POSTPROC_MODE = "CTJN";
 
 function parseRawWith(grammar: Camxes, text: string): unknown {
   try {
@@ -47,10 +52,10 @@ function parseRawWith(grammar: Camxes, text: string): unknown {
   }
 }
 
-function parseTrimmedWith(grammar: Camxes, text: string): TrimmedNode[] {
+function parseTreeWith(grammar: Camxes, mode: string, text: string): TrimmedNode {
   const raw = parseRawWith(grammar, text);
-  const json = postproc.postprocess(raw, POSTPROC_MODE);
-  return JSON.parse(json) as TrimmedNode[];
+  const json = postproc.postprocess(raw, mode);
+  return JSON.parse(json) as TrimmedNode;
 }
 
 /** Parses Lojban text into camxes' raw, untrimmed parse tree. Throws
@@ -63,12 +68,26 @@ export function parseRaw(text: string): unknown {
  * leaves are either "SELMAHO:word" or a bare selmaho for an elided
  * terminator. Throws LojbanSyntaxError if the text is not grammatical. */
 export function parseTrimmed(text: string): TrimmedNode[] {
-  return parseTrimmedWith(camxes, text);
+  return parseTreeWith(camxes, POSTPROC_MODE, text) as TrimmedNode[];
 }
 
 /** Same as parseTrimmed, but against camxes-exp -- see
  * docs/architecture-decisions/003 for why this is a separate, fallback-only
  * entry point rather than folded into parseTrimmed itself. */
 export function parseTrimmedExperimental(text: string): TrimmedNode[] {
-  return parseTrimmedWith(camxesExp, text);
+  return parseTreeWith(camxesExp, POSTPROC_MODE, text) as TrimmedNode[];
+}
+
+/** Same as parseTrimmed, but also keeps BRIDI/SELBRI/SUMTI/PRENEX
+ * grammatical-role wrapper nodes (see LABELED_NODE_ROLES) instead of
+ * trimming them away -- for showing how a sentence's words nest together,
+ * not for the word-by-word lookup pipeline analyzeCore() already covers. */
+export function parseLabeledTree(text: string): TrimmedNode {
+  return parseTreeWith(camxes, LABELED_POSTPROC_MODE, text);
+}
+
+/** Same as parseLabeledTree, but against camxes-exp -- see
+ * docs/architecture-decisions/003. */
+export function parseLabeledTreeExperimental(text: string): TrimmedNode {
+  return parseTreeWith(camxesExp, LABELED_POSTPROC_MODE, text);
 }

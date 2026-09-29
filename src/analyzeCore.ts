@@ -2,8 +2,8 @@ import type { DictionaryCache } from "./cache/cache.js";
 import type { Valsi, ValsiDefinition } from "./dictionary/types.js";
 import { decomposeLujvo, NotLujvoError } from "./lujvo/decompose.js";
 import type { LujvoComponent } from "./lujvo/decompose.js";
-import { LojbanSyntaxError } from "./parser/lojbanSyntaxError.js";
 import { extractTerms } from "./parser/extractTerms.js";
+import { parseWithFallback } from "./parser/parseWithFallback.js";
 import type { Term, TrimmedNode } from "./parser/types.js";
 
 /** The subset of a dictionary client that analyzeCore() depends on, so
@@ -79,7 +79,11 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
   const { cache, client } = deps;
   const includeDefinitions = deps.includeDefinitions ?? true;
 
-  const { parseTree, usedExperimentalGrammar } = parseWithFallback(text, deps);
+  const { result: parseTree, usedExperimentalGrammar } = parseWithFallback(
+    text,
+    deps.parseTrimmed,
+    deps.parseTrimmedExperimental,
+  );
   const terms = extractTerms(parseTree);
 
   const uniqueWords = [...new Set(terms.map((term) => term.word))];
@@ -141,28 +145,6 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
   });
 
   return { input: text, parseTree, terms: annotatedTerms, usedExperimentalGrammar };
-}
-
-/** Tries the standard grammar first; only on a LojbanSyntaxError, and only if
- * deps.parseTrimmedExperimental was supplied, retries with camxes-exp (ADR
- * 003). If that also fails, re-throws the *standard* grammar's error -- it's
- * the more useful message for genuinely invalid input, since camxes-exp's
- * error wording/position can differ for reasons unrelated to what the caller
- * actually got wrong. */
-function parseWithFallback(
-  text: string,
-  deps: Pick<AnalyzeCoreDeps, "parseTrimmed" | "parseTrimmedExperimental">,
-): { parseTree: TrimmedNode[]; usedExperimentalGrammar: boolean } {
-  try {
-    return { parseTree: deps.parseTrimmed(text), usedExperimentalGrammar: false };
-  } catch (err) {
-    if (!(err instanceof LojbanSyntaxError) || !deps.parseTrimmedExperimental) throw err;
-    try {
-      return { parseTree: deps.parseTrimmedExperimental(text), usedExperimentalGrammar: true };
-    } catch {
-      throw err;
-    }
-  }
 }
 
 async function lookupWord(

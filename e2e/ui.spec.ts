@@ -165,6 +165,55 @@ test("the experimental-grammar notice clears after a subsequent standard-grammar
   await expect(page.locator("#experimental-grammar-notice")).toBeHidden();
 });
 
+test("the nesting section is hidden until an analysis succeeds", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#nesting-section")).toBeHidden();
+});
+
+test("analyzing a sentence shows the nesting boxes with grammatical-role captions and linked words", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("mi tavla do fi la .lojban.");
+  await page.locator("#analyze-button").click();
+
+  const nestingSection = page.locator("#nesting-section");
+  await expect(nestingSection).toBeVisible({ timeout: 15_000 });
+
+  const captions = nestingSection.locator(".nest-caption");
+  await expect(captions).toContainText(["sumti", "selbri", "sumti", "sumti", "sentence"]);
+
+  const tavlaLeaf = nestingSection.locator(".nest-leaf", { hasText: "tavla" });
+  await expect(tavlaLeaf.locator("a")).toHaveAttribute("href", "https://lensisku.lojban.org/en/valsi/tavla");
+
+  // "cu"/"vau" are elided in this input -- nothing was typed for them, so
+  // no leaf box should exist for either.
+  await expect(nestingSection.getByText("CU", { exact: true })).toHaveCount(0);
+  await expect(nestingSection.getByText("VAU", { exact: true })).toHaveCount(0);
+});
+
+test("the nesting boxes still render for a sentence that needed the camxes-exp fallback", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("mi tavla do ue'i");
+  await page.locator("#analyze-button").click();
+
+  const nestingSection = page.locator("#nesting-section");
+  await expect(nestingSection).toBeVisible({ timeout: 15_000 });
+  await expect(nestingSection.locator(".nest-leaf", { hasText: "ue'i" })).toBeVisible();
+});
+
+test("the nesting section hides again after a subsequent syntax error", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("ti melbi");
+  await page.locator("#analyze-button").click();
+  await expect(page.locator("#nesting-section")).toBeVisible({ timeout: 15_000 });
+
+  await page.locator("#lojban-input").fill("...###invalid###...");
+  await page.locator("#analyze-button").click();
+  await expect(page.locator("#nesting-section")).toBeHidden();
+});
+
 test("analyzing a sentence with an undocumented name shows 'name: Capitalized' instead of 'no dictionary entry'", async ({ page }) => {
   await page.goto("/");
 

@@ -1,5 +1,14 @@
-import { analyze, decomposeLujvo, LensiskuClient, LojbanSyntaxError, NotLujvoError } from "../src/browser.js";
-import type { AnnotatedLujvoComponent, AnnotatedTerm } from "../src/browser.js";
+import {
+  analyze,
+  decomposeLujvo,
+  LABELED_NODE_ROLES,
+  LensiskuClient,
+  LojbanSyntaxError,
+  NotLujvoError,
+  parseLabeledTree,
+  parseLabeledTreeExperimental,
+} from "../src/browser.js";
+import type { AnalyzeResult, AnnotatedLujvoComponent, AnnotatedTerm, LabeledNodeRole, TrimmedNode } from "../src/browser.js";
 import type { ValsiDefinition } from "../src/browser.js";
 
 const form = document.getElementById("analyze-form") as HTMLFormElement;
@@ -9,6 +18,8 @@ const experimentalGrammarNotice = document.getElementById("experimental-grammar-
 const dictionaryStatus = document.getElementById("dictionary-status") as HTMLElement;
 const resultsTable = document.getElementById("results-table") as HTMLTableElement;
 const resultsBody = document.getElementById("results-body") as HTMLTableSectionElement;
+const nestingSection = document.getElementById("nesting-section") as HTMLElement;
+const nestingContainer = document.getElementById("nesting-boxes") as HTMLElement;
 
 function showError(message: string): void {
   errorBox.textContent = message;
@@ -149,11 +160,124 @@ function renderResults(terms: readonly AnnotatedTerm[]): void {
   resultsTable.hidden = false;
 }
 
+const ROLE_DISPLAY_NAMES: Record<LabeledNodeRole, string> = {
+  BRIDI: "sentence",
+  SELBRI: "selbri",
+  SUMTI: "sumti",
+  PRENEX: "prenex",
+};
+
+const NESTING_DEPTH_COLORS = 5;
+
+function nestingDepthClass(depth: number): string {
+  return `nest-d${depth % NESTING_DEPTH_COLORS}`;
+}
+
+// A labeled node from parseLabeledTree()/parseLabeledTreeExperimental() is
+// `[label, ...children]`, where `label` is one of LABELED_NODE_ROLES,
+// sometimes with a trailing colon (postproc collapsed it to a single
+// already-flattened child -- see LABELED_NODE_ROLES' own doc comment).
+// Anything else starting a multi-element array -- a nested array, or a
+// "SELMAHO:word"/bare-selmaho leaf acting as a sibling rather than a
+// wrapping label -- is just a structural grouping with no role to show.
+function roleFromLabel(label: string): LabeledNodeRole | null {
+  const stripped = label.endsWith(":") ? label.slice(0, -1) : label;
+  return (LABELED_NODE_ROLES as readonly string[]).includes(stripped) ? (stripped as LabeledNodeRole) : null;
+}
+
+// Bare selmaho with no ":word" are elided terminators (e.g. an implicit
+// "cu"/"vau") -- nothing the user actually typed, so nothing to show a box
+// for, matching how the results table already only ever lists real words.
+function buildNestingLeaf(leaf: string, depth: number, wordLookup: ReadonlyMap<string, AnnotatedTerm>): HTMLElement | null {
+  const colonIndex = leaf.indexOf(":");
+  if (colonIndex === -1) return null;
+  const selmaho = leaf.slice(0, colonIndex);
+  const word = leaf.slice(colonIndex + 1);
+
+  const box = document.createElement("div");
+  box.className = `nest-leaf ${nestingDepthClass(depth)}`;
+
+  const wordEl = document.createElement("div");
+  if (wordLookup.get(word)?.valsi) {
+    appendLensiskuLink(wordEl, word);
+  } else {
+    wordEl.textContent = word;
+  }
+  box.appendChild(wordEl);
+
+  const selmahoEl = document.createElement("div");
+  selmahoEl.className = "nest-selmaho";
+  selmahoEl.textContent = selmaho;
+  box.appendChild(selmahoEl);
+
+  return box;
+}
+
+function buildNestingNode(
+  node: TrimmedNode,
+  depth: number,
+  wordLookup: ReadonlyMap<string, AnnotatedTerm>,
+): HTMLElement | null {
+  if (typeof node === "string") return buildNestingLeaf(node, depth, wordLookup);
+
+  const [first, ...rest] = node;
+  const role = typeof first === "string" ? roleFromLabel(first) : null;
+  const children = role !== null ? rest : node;
+
+  const childBoxes = children
+    .map((child) => buildNestingNode(child, depth + 1, wordLookup))
+    .filter((el): el is HTMLElement => el !== null);
+  if (childBoxes.length === 0) return null;
+
+  const box = document.createElement("div");
+  box.className = `nest-node ${nestingDepthClass(depth)}`;
+
+  const childrenRow = document.createElement("div");
+  childrenRow.className = "nest-children";
+  for (const child of childBoxes) childrenRow.appendChild(child);
+  box.appendChild(childrenRow);
+
+  if (role !== null) {
+    const caption = document.createElement("div");
+    caption.className = "nest-caption";
+    caption.textContent = ROLE_DISPLAY_NAMES[role];
+    box.appendChild(caption);
+  }
+
+  return box;
+}
+
+// A separate parse from analyze()'s (parseLabeledTree keeps grammatical-role
+// wrapper nodes that parseTrimmed trims away -- see ADR 003 and
+// LABELED_NODE_ROLES), but of the exact same input text, so it's always
+// grammatical under whichever grammar analyze() itself just used --
+// repeating its usedExperimentalGrammar choice here, rather than redoing the
+// standard-then-experimental fallback dance a second time.
+function renderNesting(text: string, result: AnalyzeResult): void {
+  try {
+    const tree = result.usedExperimentalGrammar ? parseLabeledTreeExperimental(text) : parseLabeledTree(text);
+    const wordLookup = new Map(result.terms.map((term) => [term.word, term] as const));
+    const rootBox = buildNestingNode(tree, 0, wordLookup);
+    if (rootBox) {
+      nestingContainer.innerHTML = "";
+      nestingContainer.appendChild(rootBox);
+      nestingSection.hidden = false;
+      return;
+    }
+  } catch {
+    // Best-effort visualization on top of an already-successful analyze()
+    // result -- on any failure, just hide this section rather than breaking
+    // the results the user already has.
+  }
+  nestingSection.hidden = true;
+}
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideError();
   setExperimentalGrammarNotice(false);
   resultsTable.hidden = true;
+  nestingSection.hidden = true;
 
   const text = textarea.value.trim();
   if (!text) {
@@ -165,6 +289,7 @@ form.addEventListener("submit", async (event) => {
     const result = await analyze(text);
     setExperimentalGrammarNotice(result.usedExperimentalGrammar);
     renderResults(result.terms);
+    renderNesting(text, result);
   } catch (err) {
     if (err instanceof LojbanSyntaxError) {
       showError(`${err.message} (line ${err.line}, column ${err.column})`);

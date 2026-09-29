@@ -69,7 +69,7 @@ npm run build:web  # bundles web/main.ts + copies index.html/style.css/camxes.js
 npm run dev:web    # same, in watch mode with hot reload, serving web/dist/ locally
 ```
 
-Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
+Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. Below that, a "Nesting" section shows how the words group together grammatically as nested, colored boxes (`sumti` inside a `selbri` inside a `sentence`, and so on) — see [ADR 005](./docs/architecture-decisions/005-nesting-visualization-via-postproc-node-labels.md). `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
 
 `src/browser.ts` is a separate entry point from the Node-facing `src/index.ts`: it uses `MapDictionaryCache` (in-memory, not `better-sqlite3`, which is a native addon and can't run in a browser) and loads the camxes grammar from `window.camxes`/`window.camxes_postprocessing`/`window.camxes_exp` globals (set by `<script>` tags in `web/index.html`) instead of Node's `createRequire`. `src/analyzeCore.ts` holds the platform-agnostic logic both entry points share.
 
@@ -94,7 +94,7 @@ CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as three jobs �
 
 No library build/publish step in `ci.yml` — the npm package is published separately, via `.github/workflows/publish.yml` on a `vX.Y.Z` tag push, using npm Trusted Publishing (OIDC). See `PUBLISHING.md` for the full release process.
 
-See `src/index.ts` (Node) / `src/browser.ts` (browser) for the full library export surface: `analyze`, `decomposeLujvo`, `extractTerms`, `LensiskuClient`, and their types, plus `parseRaw`/`parseTrimmed`/`parseTrimmedExperimental`/`SqliteDictionaryCache`/`MapDictionaryCache` where platform-appropriate.
+See `src/index.ts` (Node) / `src/browser.ts` (browser) for the full library export surface: `analyze`, `decomposeLujvo`, `extractTerms`, `LensiskuClient`, and their types, plus `parseRaw`/`parseTrimmed`/`parseTrimmedExperimental`/`parseLabeledTree`/`parseLabeledTreeExperimental`/`parseWithFallback`/`SqliteDictionaryCache`/`MapDictionaryCache` where platform-appropriate.
 
 ## Attribution
 
