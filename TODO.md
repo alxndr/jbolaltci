@@ -25,4 +25,6 @@
 
 * [x] add linting ([Biome](../docs/architecture-decisions/004-lint-with-biome-defer-formatting.md), lint-only for now -- the formatter is deliberately off)
 
+* [x] add hot reloading to the `dev:web` task
+
 * [ ] look into newer version of TypeScript

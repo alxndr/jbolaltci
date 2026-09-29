@@ -14,9 +14,10 @@ const serve = process.argv.includes("--serve");
 
 function copyStaticAssets() {
   mkdirSync(outdir, { recursive: true });
-  for (const file of ["index.html", "about.html", "style.css"]) {
+  for (const file of ["about.html", "style.css"]) {
     cpSync(join(here, file), join(outdir, file));
   }
+  writeIndexHtml();
   // camxes.js/camxes_postproc.js are loaded as classic <script> globals (see
   // src/parser/camxes.browser.ts) -- copied from the single canonical vendor
   // location rather than duplicated as a second checked-in copy.
@@ -24,6 +25,25 @@ function copyStaticAssets() {
     cpSync(join(root, "vendor", "ilmentufa", file), join(outdir, file));
   }
   writeWrappedExperimentalGrammar();
+}
+
+// esbuild's dev server exposes a /esbuild SSE endpoint that fires a "change"
+// event after each successful rebuild (confirmed hands-on: curling it while
+// editing main.ts printed a change event within milliseconds of the save).
+// This is esbuild's own documented live-reload recipe, not something we're
+// inventing -- wiring a listener to it is what turns "the bundle on disk
+// updated" into "the open tab actually shows it". Only injected in --watch
+// mode: there's no such endpoint on the static GitHub Pages build, so this
+// script would do nothing there but leave a dangling reconnect loop.
+const LIVE_RELOAD_SCRIPT =
+  '<script>new EventSource("/esbuild").addEventListener("change", () => location.reload());</script>';
+
+function writeIndexHtml() {
+  let html = readFileSync(join(here, "index.html"), "utf8");
+  if (watch) {
+    html = html.replace("</body>", `  ${LIVE_RELOAD_SCRIPT}\n</body>`);
+  }
+  writeFileSync(join(outdir, "index.html"), html);
 }
 
 // camxes-exp.js declares the same top-level `var camxes` as camxes.js does,

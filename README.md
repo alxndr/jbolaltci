@@ -66,7 +66,7 @@ Runs entirely client-side (no backend at all) at **[alxndr.github.io/jbolaltci](
 
 ```sh
 npm run build:web  # bundles web/main.ts + copies index.html/style.css/camxes.js/camxes_postproc.js/camxes-exp.js into web/dist/
-npm run dev:web    # same, in watch mode, serving web/dist/ locally
+npm run dev:web    # same, in watch mode with hot reload, serving web/dist/ locally
 ```
 
 Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
