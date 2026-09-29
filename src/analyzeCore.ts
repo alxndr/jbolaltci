@@ -74,7 +74,9 @@ interface WordLookup {
  * Platform-agnostic core with no defaults of its own -- see analyze.ts (Node)
  * and browser.ts (browser) for the wrappers that supply parseTrimmed/cache/client. */
 export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<AnalyzeResult> {
-  const { parseTrimmed, cache, client } = deps;
+  // parseTrimmed is deliberately not destructured here: parsing goes through
+  // parseWithFallback below, which reads it off deps itself.
+  const { cache, client } = deps;
   const includeDefinitions = deps.includeDefinitions ?? true;
 
   const { parseTree, usedExperimentalGrammar } = parseWithFallback(text, deps);

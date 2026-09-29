@@ -60,6 +60,7 @@ jobs:
           node-version: 26
           registry-url: 'https://registry.npmjs.org'
       - run: npm ci
+      - run: npm run lint
       - run: npm run typecheck
       - run: npm run typecheck:web
       - run: npm run test:unit

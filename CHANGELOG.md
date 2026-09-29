@@ -6,12 +6,17 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- Linting via [Biome](https://biomejs.dev), with the `recommended` rule preset, wired into CI ahead of the typechecks (`npm run lint`, `npm run lint:fix`). The formatter is deliberately left off, so this adds no reformatting churn; the rationale for the tool choice, and for the reasons the formatter and import-organizing are off for now, are in [ADR 004](./docs/architecture-decisions/004-lint-with-biome-defer-formatting.md).
 - `analyze()` now falls back to [`camxes-exp`](https://github.com/lojban/ilmentufa) (vendored alongside the canonical grammar) when standard parsing rejects input, so words lensisku tags `"experimental cmavo"` (e.g. `ue'i`) are recognized instead of failing outright. Since `camxes-exp` carries real grammar changes beyond vocabulary, not just additional words, a fallback result is flagged via `AnalyzeResult.usedExperimentalGrammar` rather than presented as an ordinary parse -- the web UI shows a notice when it's used. See [ADR 003](./docs/architecture-decisions/003-experimental-cmavo-via-camxes-exp-fallback.md).
 
 ### Changed
 
 - The web app now renders lensisku's `$x_1$`-style place-structure placeholders (inconsistently written as `$x_1$` or `$x_{1}$` depending on the entry) as a formatted "*x*₁" instead of showing the raw markup.
 - `ci.yml`'s `e2e` job now caches `node_modules` (keyed on the Playwright image tag + `package-lock.json`), skipping both the `apt-get install` of build tools and `npm ci`'s native compile step on unchanged dependencies. `better-sqlite3` ships prebuilt binaries, but `npm ci` was still forcing a `node-gyp rebuild` regardless of that (confirmed by running the exact CI image locally without the build tools installed -- it doesn't check for a matching prebuild before trying to compile), which is what made that install step take ~3 minutes on every run.
+
+### Fixed
+
+- `analyzeCore()` destructured `parseTrimmed` off its dependencies object without ever using the local binding; parsing actually goes through `parseWithFallback()`, which reads it off the dependencies object itself.
 
 ## [0.2.0-rc.1] - 2026-08-15
 

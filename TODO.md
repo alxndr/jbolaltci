@@ -20,7 +20,6 @@
 
 ## ops
 
-* [ ] add linting?
-    * decide whether to use biome or oxlint…
+* [x] add linting ([Biome](../docs/architecture-decisions/004-lint-with-biome-defer-formatting.md), lint-only for now -- the formatter is deliberately off)
 
 * [ ] look into newer version of TypeScript

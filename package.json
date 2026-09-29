@@ -23,6 +23,8 @@
     "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit",
     "typecheck:web": "tsc --noEmit -p web/tsconfig.json",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome lint --write",
     "build:web": "node web/build.mjs",
     "dev:web": "node web/build.mjs --watch --serve",
     "serve:web": "node web/build.mjs --serve"
@@ -40,6 +42,7 @@
     "url": "git+https://github.com/alxndr/jbolaltci.git"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
     "@playwright/test": "^1.62.1",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.2.0",

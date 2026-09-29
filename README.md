@@ -79,14 +79,16 @@ Type Lojban text into the textarea, submit, and see a table of each word's selma
 npm run test:unit    # vitest, offline — network-mocked and in-memory-cache tests only
 RUN_LIVE_TESTS=1 npm run test:unit -- test/live-smoke.test.ts   # also hits the real lensisku API
 npm run test:e2e     # e2e: drives a real browser against the real client-side build + real lensisku
-npm test             # test:unit then test:e2e
+npm run test         # test:unit then test:e2e
+npm run lint         # Biome (lint only — no formatter; see ADR 004)
+npm run lint:fix     # same, applying Biome's safe fixes
 npm run typecheck      # src/ + test/ (Node)
 npm run typecheck:web  # web/ (browser DOM lib; kept as a separate tsconfig -- see web/tsconfig.json)
 npm run build          # library: ESM build + .d.ts via tsup, to dist/
 ```
 
 CI (`.github/workflows/ci.yml`) runs on every push/PR to `main`, as three jobs — the same commands as above (`RUN_LIVE_TESTS` stays off; the Playwright suite is the real-network coverage there):
-1. `typecheck-and-unit`: both typechecks, then vitest, on a plain `ubuntu-latest` runner.
+1. `typecheck-and-unit`: lint, both typechecks, then vitest, on a plain `ubuntu-latest` runner.
 2. `e2e` (only once that passes): Playwright, inside Microsoft's official `mcr.microsoft.com/playwright` container image (pinned to the exact `@playwright/test` version) so the browsers are already there instead of being downloaded every run. That image has no C/C++ toolchain, and `better-sqlite3` needs one to compile its native binding via `node-gyp` — despite it shipping prebuilt binaries, `npm ci` doesn't check for a matching one before trying to compile regardless. `node_modules` is cached (keyed on the image tag + `package-lock.json`), so both that native-toolchain install and the compile step are only paid again when dependencies actually change, not on every run.
 3. `deploy` (push to `main` only, only once `e2e` passes): builds `web/` and publishes it to GitHub Pages via `actions/upload-pages-artifact` + `actions/deploy-pages`.
 
