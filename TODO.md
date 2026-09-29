@@ -13,9 +13,10 @@
 
 * [x] on pageload, verify whether all the 3rd-party tools we need are responsive
 
-* [ ] link from each term to the entry on *la lensisku*
+* [x] link from each term to the entry on *la lensisku*
 
-* [ ] show the "nesting" of how words are associated (see for example [jboski](https://jboski.lojban.org/?text=mi%20gubysku%20lenu%20finti%20be%20lo%20lojbau%20zei%20gentufa) or the "boxes" view of [ilmentufa](https://lojban.github.io/ilmentufa/glosser/glosser.htm#mi+gubysku+lenu+finti+be+lo+mi+cnino+gentufa))
+* [ ] show the "nesting" of how words are associated
+    * see for example [jboski](https://jboski.lojban.org/?text=mi%20gubysku%20lenu%20finti%20be%20lo%20lojbau%20zei%20gentufa) or the "boxes" view of [ilmentufa](https://lojban.github.io/ilmentufa/glosser/glosser.htm#mi+gubysku+lenu+finti+be+lo+mi+cnino+gentufa) `~/Desktop/Screenshot 2026-09-29 at 12.03.21 PM.png`
 
 * [ ] improve error messages (e.g. input "abc")
 

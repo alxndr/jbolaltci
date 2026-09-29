@@ -37,6 +37,23 @@ function englishDefinitionText(definitions: readonly ValsiDefinition[]): string 
   return definitions.find((d) => d.langrealname === "English")?.definition ?? null;
 }
 
+function lensiskuEntryUrl(word: string): string {
+  return `https://lensisku.lojban.org/en/valsi/${encodeURIComponent(word)}`;
+}
+
+// Only ever called for a word known to have a real lensisku entry (a
+// non-null term.valsi, or a lujvo component that resolved to a real gismu) --
+// linking any other word 404s there (verified against the live site), so
+// callers must check that themselves rather than this function guessing.
+function appendLensiskuLink(container: HTMLElement, word: string): void {
+  const link = document.createElement("a");
+  link.href = lensiskuEntryUrl(word);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = word;
+  container.appendChild(link);
+}
+
 // lensisku's English definitions write place structure as raw LaTeX-ish
 // placeholders; render those as italic x with a subscript instead of
 // showing the markup verbatim. The brace form isn't consistently used
@@ -71,7 +88,8 @@ function buildLujvoBreakdown(components: readonly AnnotatedLujvoComponent[]): HT
     const item = document.createElement("li");
     const gloss = component.gismu ? englishDefinitionText(component.definitions) : null;
     if (component.gismu) {
-      item.appendChild(document.createTextNode(`${component.rafsi} → ${component.gismu}`));
+      item.appendChild(document.createTextNode(`${component.rafsi} → `));
+      appendLensiskuLink(item, component.gismu);
       if (gloss) {
         item.appendChild(document.createTextNode(": "));
         appendFormattedDefinition(item, gloss);
@@ -111,7 +129,16 @@ function renderResults(terms: readonly AnnotatedTerm[]): void {
   resultsBody.innerHTML = "";
   for (const term of terms) {
     const row = document.createElement("tr");
-    for (const text of [term.word, term.selmaho, term.valsi ? term.valsi.type_name : "—"]) {
+
+    const wordCell = document.createElement("td");
+    if (term.valsi) {
+      appendLensiskuLink(wordCell, term.word);
+    } else {
+      wordCell.textContent = term.word;
+    }
+    row.appendChild(wordCell);
+
+    for (const text of [term.selmaho, term.valsi ? term.valsi.type_name : "—"]) {
       const cell = document.createElement("td");
       cell.textContent = text;
       row.appendChild(cell);

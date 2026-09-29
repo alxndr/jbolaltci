@@ -88,6 +88,38 @@ test("analyzing a sentence with an undocumented lujvo shows its decomposition in
   await expect(definitionCell).toContainText("tutci");
 });
 
+test("a term with a real dictionary entry links its word to the lensisku entry", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("ti melbi");
+  await page.locator("#analyze-button").click();
+
+  const melbiRow = page.locator("#results-body tr", { hasText: "melbi" });
+  await expect(melbiRow).toBeVisible();
+
+  const wordLink = melbiRow.locator("td").first().locator("a");
+  await expect(wordLink).toHaveAttribute("href", "https://lensisku.lojban.org/en/valsi/melbi");
+  await expect(wordLink).toHaveAttribute("target", "_blank");
+});
+
+test("a lujvo's decomposed component gismu also link to their lensisku entries", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("mi tavla do le jbolaltci");
+  await page.locator("#analyze-button").click();
+
+  const lujvoRow = page.locator("#results-body tr", { hasText: "jbolaltci" });
+  await expect(lujvoRow).toBeVisible({ timeout: 15_000 });
+
+  // The lujvo term itself has no dictionary entry of its own -- its word
+  // cell should stay plain text, not link anywhere that would 404.
+  await expect(lujvoRow.locator("td").first().locator("a")).toHaveCount(0);
+
+  const definitionCell = lujvoRow.locator("td").last();
+  const gismuLink = definitionCell.locator("a", { hasText: "lojbo" });
+  await expect(gismuLink).toHaveAttribute("href", "https://lensisku.lojban.org/en/valsi/lojbo");
+});
+
 test("gismu place-structure placeholders like $x_1$ render as formatted subscripts, not raw markup", async ({ page }) => {
   await page.goto("/");
 
@@ -144,4 +176,7 @@ test("analyzing a sentence with an undocumented name shows 'name: Capitalized' i
 
   const definitionCell = nameRow.locator("td").last();
   await expect(definitionCell).toHaveText("name: Rexs");
+
+  // An undocumented name has no dictionary entry to link to.
+  await expect(nameRow.locator("td").first().locator("a")).toHaveCount(0);
 });
