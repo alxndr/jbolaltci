@@ -19,6 +19,28 @@ test("submitting the pre-filled example sentence renders a result row per word",
   await expect(page.locator("#error-message")).toBeHidden();
 });
 
+test("the dictionary-status notice stays hidden when lensisku is reachable on page load", async ({ page }) => {
+  await page.goto("/");
+
+  // Give the page-load check (a real request to the real API) a moment to
+  // resolve, then confirm it didn't surface anything.
+  await page.waitForTimeout(1_000);
+  await expect(page.locator("#dictionary-status")).toBeHidden();
+});
+
+test("the dictionary-status notice appears on page load when lensisku is unreachable", async ({ page }) => {
+  await page.route("https://lensisku.lojban.org/api/**", (route) => route.abort("connectionfailed"));
+
+  await page.goto("/");
+
+  const status = page.locator("#dictionary-status");
+  await expect(status).toBeVisible({ timeout: 10_000 });
+  await expect(status).toContainText("isn't responding");
+
+  // Advisory only -- the rest of the page must still be usable.
+  await expect(page.locator("#analyze-button")).toBeEnabled();
+});
+
 test("submitting ungrammatical text shows a syntax error instead of results", async ({ page }) => {
   await page.goto("/");
 

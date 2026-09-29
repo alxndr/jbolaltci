@@ -70,7 +70,8 @@ ul li {
   border-radius: 0.25rem;
 }
 
-#experimental-grammar-notice {
+#experimental-grammar-notice,
+#dictionary-status {
   background: var(--notice-bg);
   color: var(--notice-fg);
   padding: 0.75rem;

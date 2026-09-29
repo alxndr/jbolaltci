@@ -8,6 +8,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - Linting via [Biome](https://biomejs.dev), with the `recommended` rule preset, wired into CI ahead of the typechecks (`npm run lint`, `npm run lint:fix`). The formatter is deliberately left off, so this adds no reformatting churn; the rationale for the tool choice, and for the reasons the formatter and import-organizing are off for now, are in [ADR 004](./docs/architecture-decisions/004-lint-with-biome-defer-formatting.md).
 - `analyze()` now falls back to [`camxes-exp`](https://github.com/lojban/ilmentufa) (vendored alongside the canonical grammar) when standard parsing rejects input, so words lensisku tags `"experimental cmavo"` (e.g. `ue'i`) are recognized instead of failing outright. Since `camxes-exp` carries real grammar changes beyond vocabulary, not just additional words, a fallback result is flagged via `AnalyzeResult.usedExperimentalGrammar` rather than presented as an ordinary parse -- the web UI shows a notice when it's used. See [ADR 003](./docs/architecture-decisions/003-experimental-cmavo-via-camxes-exp-fallback.md).
+- The web app now checks lensisku's reachability once on page load (a real lookup of `coi`, the same endpoint every other lookup already depends on) and shows a notice if it doesn't respond -- advisory only, it doesn't block the form. lensisku does have a dedicated `/health` endpoint, but it lacks the CORS headers the `/api/*` routes have, so it isn't reachable from the browser build at all.
 
 ### Changed
 

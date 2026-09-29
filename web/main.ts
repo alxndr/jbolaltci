@@ -1,4 +1,4 @@
-import { analyze, decomposeLujvo, LojbanSyntaxError, NotLujvoError } from "../src/browser.js";
+import { analyze, decomposeLujvo, LensiskuClient, LojbanSyntaxError, NotLujvoError } from "../src/browser.js";
 import type { AnnotatedLujvoComponent, AnnotatedTerm } from "../src/browser.js";
 import type { ValsiDefinition } from "../src/browser.js";
 
@@ -6,6 +6,7 @@ const form = document.getElementById("analyze-form") as HTMLFormElement;
 const textarea = document.getElementById("lojban-input") as HTMLTextAreaElement;
 const errorBox = document.getElementById("error-message") as HTMLElement;
 const experimentalGrammarNotice = document.getElementById("experimental-grammar-notice") as HTMLElement;
+const dictionaryStatus = document.getElementById("dictionary-status") as HTMLElement;
 const resultsTable = document.getElementById("results-table") as HTMLTableElement;
 const resultsBody = document.getElementById("results-body") as HTMLTableSectionElement;
 
@@ -194,3 +195,25 @@ lujvoForm?.addEventListener("submit", async (event) => {
     }
   }
 });
+
+// This app's only 3rd-party runtime dependency is lensisku itself -- camxes
+// and camxes-exp are bundled static assets, not a separate live service to
+// check. "coi" is a real, guaranteed-to-exist cmavo (and the first word of
+// the pre-filled example above), so this doubles as a real exercise of the
+// exact endpoint analyze() depends on rather than a separate health-check
+// path that could pass while the one we actually use is broken. A short
+// timeout keeps a slow/unreachable service from leaving this notice pending
+// for long; this only ever checks once, on load -- it's advisory, not a
+// gate on submitting the form.
+async function checkDictionaryAvailability(): Promise<void> {
+  const client = new LensiskuClient({ timeoutMs: 5_000 });
+  try {
+    await client.getValsi("coi");
+  } catch {
+    dictionaryStatus.textContent =
+      "The lensisku dictionary service isn't responding right now -- word lookups may fail until it's back.";
+    dictionaryStatus.hidden = false;
+  }
+}
+
+void checkDictionaryAvailability();
