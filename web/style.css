@@ -101,3 +101,7 @@ td {
   padding: 0.4rem;
   border-bottom: 1px solid var(--border);
 }
+
+tt {
+  font-size: 1.1em;
+}
