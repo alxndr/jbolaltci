@@ -7,6 +7,8 @@
 
 * [x] allow experimental *cmavo* (e.g. *ue'i*)
 
+* [x] surface a word's definition even when neither grammar can parse the whole text (e.g. *a'oi*, missing from both vendored grammars' cmavo lists) ([ADR 006](../docs/architecture-decisions/006-word-list-fallback-for-text-neither-grammar-parses.md))
+
 ### web UX
 
 * [x] replace the raw `$x_1$` placeholders with a prettier version (e.g. "<i>x<sub>1</sub></i>")

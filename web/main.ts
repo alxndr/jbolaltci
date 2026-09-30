@@ -15,6 +15,7 @@ const form = document.getElementById("analyze-form") as HTMLFormElement;
 const textarea = document.getElementById("lojban-input") as HTMLTextAreaElement;
 const errorBox = document.getElementById("error-message") as HTMLElement;
 const experimentalGrammarNotice = document.getElementById("experimental-grammar-notice") as HTMLElement;
+const wordListFallbackNotice = document.getElementById("word-list-fallback-notice") as HTMLElement;
 const dictionaryStatus = document.getElementById("dictionary-status") as HTMLElement;
 const resultsTable = document.getElementById("results-table") as HTMLTableElement;
 const resultsBody = document.getElementById("results-body") as HTMLTableSectionElement;
@@ -42,6 +43,18 @@ function setExperimentalGrammarNotice(used: boolean): void {
     ? "This includes an experimental cmavo not in standard Lojban -- the rest of this parse may not match standard grammar either."
     : "";
   experimentalGrammarNotice.hidden = !used;
+}
+
+// Neither grammar could parse this text as a whole (see ADR 006) -- what's
+// shown instead is a plain per-word dictionary lookup, with no proof the
+// text is a grammatical sentence at all. Any word not in the dictionary
+// either shows "(no dictionary entry)" or, if it looked capitalized, a
+// guessed "name: ..." -- both same as an ordinary result already would.
+function setWordListFallbackNotice(used: boolean): void {
+  wordListFallbackNotice.textContent = used
+    ? "Couldn't parse this as a full grammatical sentence -- showing what each word means on its own instead."
+    : "";
+  wordListFallbackNotice.hidden = !used;
 }
 
 function englishDefinitionText(definitions: readonly ValsiDefinition[]): string | null {
@@ -249,10 +262,12 @@ function buildNestingNode(
 
 // A separate parse from analyze()'s (parseLabeledTree keeps grammatical-role
 // wrapper nodes that parseTrimmed trims away -- see ADR 003 and
-// LABELED_NODE_ROLES), but of the exact same input text, so it's always
-// grammatical under whichever grammar analyze() itself just used --
-// repeating its usedExperimentalGrammar choice here, rather than redoing the
-// standard-then-experimental fallback dance a second time.
+// LABELED_NODE_ROLES), but of the exact same input text -- repeating
+// analyze()'s own usedExperimentalGrammar choice here, rather than redoing
+// the standard-then-experimental fallback dance a second time. If analyze()
+// instead used the word-list fallback (ADR 006), neither grammar parses this
+// text at all -- this throws, and the catch below just hides the section,
+// since there's no grammatical structure to show.
 function renderNesting(text: string, result: AnalyzeResult): void {
   try {
     const tree = result.usedExperimentalGrammar ? parseLabeledTreeExperimental(text) : parseLabeledTree(text);
@@ -276,6 +291,7 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   hideError();
   setExperimentalGrammarNotice(false);
+  setWordListFallbackNotice(false);
   resultsTable.hidden = true;
   nestingSection.hidden = true;
 
@@ -286,8 +302,9 @@ form.addEventListener("submit", async (event) => {
   }
 
   try {
-    const result = await analyze(text);
+    const result = await analyze(text, { allowWordListFallback: true });
     setExperimentalGrammarNotice(result.usedExperimentalGrammar);
+    setWordListFallbackNotice(result.usedWordListFallback);
     renderResults(result.terms);
     renderNesting(text, result);
   } catch (err) {

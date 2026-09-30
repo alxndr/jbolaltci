@@ -44,7 +44,7 @@ decomposeLujvo("jbolaltci");
 3. Looks up each distinct word against a local cache first (a SQLite file at `~/.cache/jbolaltci/dictionary.sqlite` by default), falling back to a live call to lensisku's public JSON API on a cache miss, and writes the result back to the cache.
 4. For a lujvo term with no dictionary entry of its own (selma'o `L`, `valsi` null), decomposes it and looks up each component gismu's definitions too, exposed as `term.lujvoComponents` (null otherwise — including for a lujvo that *does* have its own entry, where decomposing it would be redundant).
 
-Throws `LojbanSyntaxError` (with `.expected`/`.found`/`.line`/`.column`) if the input isn't grammatical Lojban under either grammar.
+Throws `LojbanSyntaxError` (with `.expected`/`.found`/`.line`/`.column`) if the input isn't grammatical Lojban under either grammar — unless `allowWordListFallback` is set (off by default), in which case a third tier kicks in: the text is split into words and each one is looked up against lensisku directly, so a real word neither grammar happens to recognize (e.g. `a'oi`, a piratical vocative greeting missing from both vendored grammars' hardcoded cmavo lists) still shows its definition instead of an error. Best-effort, not all-or-nothing -- an unresolved word just shows no entry rather than failing the whole result -- and flagged via `usedWordListFallback: true`, since unlike the other two tiers it proves nothing about whether the text is an actual grammatical sentence. See [ADR 006](./docs/architecture-decisions/006-word-list-fallback-for-text-neither-grammar-parses.md).
 
 `decomposeLujvo()` breaks a lujvo down into its rafsi, each resolved back to the gismu it came from where unambiguous (ported from [latkerlo/latkerlo-jvotci](https://github.com/latkerlo/latkerlo-jvotci)). Throws `NotLujvoError` if the word isn't a decomposable lujvo (a plain gismu, a cmavo, or not a lojban word at all).
 
@@ -52,9 +52,10 @@ Throws `LojbanSyntaxError` (with `.expected`/`.found`/`.line`/`.column`) if the 
 
 ```ts
 await analyze(text, {
-  cache,               // a DictionaryCache; defaults to SqliteDictionaryCache()
-  client,              // a DictionaryLookup; defaults to LensiskuClient()
-  includeDefinitions,  // fetch full glosses per word; default true
+  cache,                  // a DictionaryCache; defaults to SqliteDictionaryCache()
+  client,                 // a DictionaryLookup; defaults to LensiskuClient()
+  includeDefinitions,     // fetch full glosses per word; default true
+  allowWordListFallback,  // per-word lookup when neither grammar parses at all; default false, see ADR 006
 });
 ```
 
@@ -69,7 +70,7 @@ npm run build:web  # bundles web/main.ts + copies index.html/style.css/camxes.js
 npm run dev:web    # same, in watch mode with hot reload, serving web/dist/ locally
 ```
 
-Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical. Below that, a "Nesting" section shows how the words group together grammatically as nested, colored boxes (`sumti` inside a `selbri` inside a `sentence`, and so on) — see [ADR 005](./docs/architecture-decisions/005-nesting-visualization-via-postproc-node-labels.md). `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
+Type Lojban text into the textarea, submit, and see a table of each word's selma'o and English definition — or a syntax-error message with line/column if the text isn't grammatical under either grammar *and* isn't recognizable word-by-word either (the web app always passes `allowWordListFallback: true` — see [ADR 006](./docs/architecture-decisions/006-word-list-fallback-for-text-neither-grammar-parses.md)). Below the results table, a "Nesting" section shows how the words group together grammatically as nested, colored boxes (`sumti` inside a `selbri` inside a `sentence`, and so on) — see [ADR 005](./docs/architecture-decisions/005-nesting-visualization-via-postproc-node-labels.md); it stays hidden when the word-list fallback was used, since there's no grammatical structure to show. `web/main.ts` calls the browser-facing library entry (`src/browser.ts`) directly and catches `LojbanSyntaxError`/`NotLujvoError` itself, rather than going through an HTTP API.
 
 `src/browser.ts` is a separate entry point from the Node-facing `src/index.ts`: it uses `MapDictionaryCache` (in-memory, not `better-sqlite3`, which is a native addon and can't run in a browser) and loads the camxes grammar from `window.camxes`/`window.camxes_postprocessing`/`window.camxes_exp` globals (set by `<script>` tags in `web/index.html`) instead of Node's `createRequire`. `src/analyzeCore.ts` holds the platform-agnostic logic both entry points share.
 

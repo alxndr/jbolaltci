@@ -3,7 +3,9 @@ import type { Valsi, ValsiDefinition } from "./dictionary/types.js";
 import { decomposeLujvo, NotLujvoError } from "./lujvo/decompose.js";
 import type { LujvoComponent } from "./lujvo/decompose.js";
 import { extractTerms } from "./parser/extractTerms.js";
+import { LojbanSyntaxError } from "./parser/lojbanSyntaxError.js";
 import { parseWithFallback } from "./parser/parseWithFallback.js";
+import { tokenizeWords } from "./parser/tokenizeWords.js";
 import type { Term, TrimmedNode } from "./parser/types.js";
 
 /** The subset of a dictionary client that analyzeCore() depends on, so
@@ -38,6 +40,13 @@ export interface AnalyzeResult {
    * whole parse, not just whatever experimental cmavo triggered the
    * fallback, may not match standard Lojban grammar. */
   readonly usedExperimentalGrammar: boolean;
+  /** True if neither grammar could parse this text at all, and `terms` was
+   * instead built from a naive whitespace split with each word looked up
+   * against lensisku directly (see ADR 006). `parseTree` in this case is a
+   * flat list of synthesized leaves, not a real grammatical structure --
+   * there's no sentence/selbri/sumti nesting to show for it. Only ever true
+   * when `AnalyzeOptions.allowWordListFallback` was set. */
+  readonly usedWordListFallback: boolean;
 }
 
 export interface AnalyzeOptions {
@@ -45,6 +54,11 @@ export interface AnalyzeOptions {
   readonly client?: DictionaryLookup;
   /** Whether to fetch each word's glosses in addition to its valsi record. Default true. */
   readonly includeDefinitions?: boolean;
+  /** Whether to fall back to a naive word-list lookup (see ADR 006) when
+   * neither grammar can parse the text at all. Off by default: unlike the
+   * camxes-exp fallback (ADR 003), this tier can "succeed" on text with no
+   * proven grammatical structure whatsoever, so a caller has to opt in. */
+  readonly allowWordListFallback?: boolean;
 }
 
 /** Platform-specific dependencies analyzeCore() needs but doesn't default
@@ -59,6 +73,7 @@ export interface AnalyzeCoreDeps {
   readonly cache: DictionaryCache;
   readonly client: DictionaryLookup;
   readonly includeDefinitions?: boolean;
+  readonly allowWordListFallback?: boolean;
 }
 
 interface WordLookup {
@@ -79,12 +94,24 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
   const { cache, client } = deps;
   const includeDefinitions = deps.includeDefinitions ?? true;
 
-  const { result: parseTree, usedExperimentalGrammar } = parseWithFallback(
-    text,
-    deps.parseTrimmed,
-    deps.parseTrimmedExperimental,
-  );
-  const terms = extractTerms(parseTree);
+  let parseTree: TrimmedNode[];
+  let terms: Term[];
+  let usedExperimentalGrammar = false;
+  let usedWordListFallback = false;
+
+  try {
+    const parsed = parseWithFallback(text, deps.parseTrimmed, deps.parseTrimmedExperimental);
+    parseTree = parsed.result;
+    usedExperimentalGrammar = parsed.usedExperimentalGrammar;
+    terms = extractTerms(parseTree);
+  } catch (err) {
+    if (!(err instanceof LojbanSyntaxError) || !deps.allowWordListFallback) throw err;
+    const fallback = await buildWordListFallback(text, cache, client, includeDefinitions);
+    if (fallback === null) throw err;
+    parseTree = fallback.parseTree;
+    terms = fallback.terms;
+    usedWordListFallback = true;
+  }
 
   const uniqueWords = [...new Set(terms.map((term) => term.word))];
   const lookedUp = await Promise.all(
@@ -144,7 +171,77 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
     };
   });
 
-  return { input: text, parseTree, terms: annotatedTerms, usedExperimentalGrammar };
+  return { input: text, parseTree, terms: annotatedTerms, usedExperimentalGrammar, usedWordListFallback };
+}
+
+/** The word-list fallback tier (see ADR 006): tries every other option
+ * exhausted, so takes the text apart with a naive whitespace split (not real
+ * Lojban morphology) and looks each token up against lensisku directly.
+ * Returns null -- signalling the caller should give up and surface the
+ * original LojbanSyntaxError instead -- if nothing in the text resolved to
+ * anything real (a dictionary entry, or a successful lujvo decomposition);
+ * otherwise returns every token as a Term, including ones that stayed
+ * unresolved, so the caller can show a real result for the parts that did
+ * work rather than an all-or-nothing failure. */
+async function buildWordListFallback(
+  text: string,
+  cache: DictionaryCache,
+  client: DictionaryLookup,
+  includeDefinitions: boolean,
+): Promise<{ parseTree: TrimmedNode[]; terms: Term[] } | null> {
+  const tokens = tokenizeWords(text);
+  if (tokens.length === 0) return null;
+
+  let anyRealResolution = false;
+  const terms: Term[] = [];
+  const leaves: TrimmedNode[] = [];
+
+  for (const word of tokens) {
+    const { valsi, definitions } = await lookupWord(word, cache, client, includeDefinitions);
+    let selmaho: string;
+    if (valsi !== null) {
+      anyRealResolution = true;
+      selmaho = fallbackSelmaho(valsi, definitions);
+    } else {
+      let isLujvo = false;
+      try {
+        decomposeLujvo(word);
+        isLujvo = true;
+      } catch (err) {
+        if (!(err instanceof NotLujvoError)) throw err;
+      }
+      if (isLujvo) {
+        anyRealResolution = true;
+        selmaho = "L";
+      } else if (/^\p{Lu}/u.test(word)) {
+        // A guess, not a confirmed classification -- matches camxes' own
+        // cmevla rule (an initial capital letter), but lensisku has no entry
+        // to back it up, so it doesn't count toward anyRealResolution.
+        selmaho = "C";
+      } else {
+        selmaho = "?";
+      }
+    }
+    terms.push({ index: terms.length, selmaho, word });
+    leaves.push(`${selmaho}:${word}`);
+  }
+
+  return anyRealResolution ? { parseTree: leaves, terms } : null;
+}
+
+/** Maps a lensisku valsi to the same single-letter/selma'o codes
+ * camxes_postproc.js's own trimmed tree uses, so a word-list-fallback term
+ * displays consistently with one that came from a real grammatical parse.
+ * Cmavo-family words (whose type_name varies -- "cmavo", "experimental
+ * cmavo", conceivably others) use their own definitions' selmaho field
+ * directly, since lensisku already names those the same way camxes does
+ * ("COI", "UI", ...) -- falling back to the literal type_name if no
+ * definition carries one (e.g. includeDefinitions was off). */
+function fallbackSelmaho(valsi: Valsi, definitions: ValsiDefinition[]): string {
+  if (valsi.type_name === "gismu") return "G";
+  if (valsi.type_name === "lujvo") return "L";
+  if (valsi.type_name === "cmevla") return "C";
+  return definitions[0]?.selmaho ?? valsi.type_name;
 }
 
 async function lookupWord(

@@ -24,5 +24,6 @@ export async function analyze(text: string, opts: AnalyzeOptions = {}): Promise<
     cache,
     client,
     includeDefinitions: opts.includeDefinitions,
+    allowWordListFallback: opts.allowWordListFallback,
   });
 }

@@ -214,6 +214,42 @@ test("the nesting section hides again after a subsequent syntax error", async ({
   await expect(page.locator("#nesting-section")).toBeHidden();
 });
 
+test("analyzing text neither grammar can parse falls back to a per-word dictionary lookup, with a notice", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.locator("#word-list-fallback-notice")).toBeHidden();
+
+  // "a'oi" (a piratical vocative greeting, "ahoy") has a real lensisku
+  // entry but isn't in either vendored grammar's hardcoded cmavo list --
+  // see ADR 006.
+  await page.locator("#lojban-input").fill("a'oi");
+  await page.locator("#analyze-button").click();
+
+  const notice = page.locator("#word-list-fallback-notice");
+  await expect(notice).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator("#error-message")).toBeHidden();
+
+  const row = page.locator("#results-body tr", { hasText: "a'oi" });
+  await expect(row).toBeVisible();
+  await expect(row).toContainText("COI");
+  await expect(row).toContainText("piratical");
+
+  // No grammatical structure was found, so there's nothing to nest.
+  await expect(page.locator("#nesting-section")).toBeHidden();
+});
+
+test("the word-list-fallback notice clears after a subsequent grammatical analysis", async ({ page }) => {
+  await page.goto("/");
+
+  await page.locator("#lojban-input").fill("a'oi");
+  await page.locator("#analyze-button").click();
+  await expect(page.locator("#word-list-fallback-notice")).toBeVisible({ timeout: 15_000 });
+
+  await page.locator("#lojban-input").fill("ti melbi");
+  await page.locator("#analyze-button").click();
+  await expect(page.locator("#word-list-fallback-notice")).toBeHidden();
+});
+
 test("analyzing a sentence with an undocumented name shows 'name: Capitalized' instead of 'no dictionary entry'", async ({ page }) => {
   await page.goto("/");
 

@@ -216,4 +216,117 @@ describe("analyze", () => {
     ]);
     expect(client.getDefinitions).not.toHaveBeenCalled();
   });
+
+  describe("word-list fallback (ADR 006)", () => {
+    it("still throws LojbanSyntaxError for ungrammatical input when allowWordListFallback is off (the default)", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient();
+
+      await expect(analyze("a'oi", { cache, client })).rejects.toThrow(LojbanSyntaxError);
+      expect(client.getValsi).not.toHaveBeenCalled();
+    });
+
+    it("falls back to a per-word dictionary lookup when neither grammar can parse the text, flagging the result", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({
+        getValsi: async (word) =>
+          word === "a'oi"
+            ? { valsiid: 1, word: "a'oi", type_name: "experimental cmavo", rafsi: null, source_langid: 1 }
+            : null,
+      });
+
+      const result = await analyze("a'oi", { cache, client, allowWordListFallback: true });
+
+      expect(result.usedWordListFallback).toBe(true);
+      expect(result.usedExperimentalGrammar).toBe(false);
+      expect(result.terms).toEqual([
+        {
+          index: 0,
+          selmaho: "experimental cmavo", // fakeDefinitions() never sets a selmaho -- see the next test
+          word: "a'oi",
+          valsi: { valsiid: 1, word: "a'oi", type_name: "experimental cmavo", rafsi: null, source_langid: 1 },
+          definitions: fakeDefinitions("a'oi"),
+          lujvoComponents: null,
+        },
+      ]);
+    });
+
+    it("uses the word's own selmaho from its definitions when one is available", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({
+        getValsi: async () => ({
+          valsiid: 1,
+          word: "a'oi",
+          type_name: "experimental cmavo",
+          rafsi: null,
+          source_langid: 1,
+        }),
+        getDefinitions: async () => {
+          const [definition] = fakeDefinitions("a'oi");
+          if (!definition) throw new Error("fakeDefinitions returned none");
+          return [{ ...definition, selmaho: "COI" }];
+        },
+      });
+
+      const result = await analyze("a'oi", { cache, client, allowWordListFallback: true });
+
+      expect(result.terms[0]?.selmaho).toBe("COI");
+    });
+
+    it("still decomposes an undocumented lujvo found this way", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({
+        getValsi: async (word) => (word === "jbolaltci" ? null : fakeValsi(word, 1)),
+      });
+
+      const result = await analyze("### jbolaltci ###", { cache, client, allowWordListFallback: true });
+
+      expect(result.usedWordListFallback).toBe(true);
+      const lujvoTerm = result.terms.find((term) => term.word === "jbolaltci");
+      expect(lujvoTerm?.selmaho).toBe("L");
+      expect(lujvoTerm?.lujvoComponents).toEqual([
+        { rafsi: "jbo", gismu: "lojbo", definitions: fakeDefinitions("lojbo") },
+        { rafsi: "lal", gismu: "lanli", definitions: fakeDefinitions("lanli") },
+        { rafsi: "tci", gismu: "tutci", definitions: fakeDefinitions("tutci") },
+      ]);
+    });
+
+    it("shows whatever resolved even when some words in the text are not found (best-effort, not all-or-nothing)", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({
+        getValsi: async (word) =>
+          word === "a'oi"
+            ? { valsiid: 1, word: "a'oi", type_name: "experimental cmavo", rafsi: null, source_langid: 1 }
+            : null,
+      });
+
+      const result = await analyze("a'oi zzzznotaword", { cache, client, allowWordListFallback: true });
+
+      expect(result.terms).toHaveLength(2);
+      expect(result.terms[0]?.valsi).not.toBeNull();
+      expect(result.terms[1]).toMatchObject({ word: "zzzznotaword", selmaho: "?", valsi: null });
+    });
+
+    it("guesses selmaho C (matching camxes' own cmevla rule) for an unresolved capitalized word, without counting it as a real resolution", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({
+        getValsi: async (word) =>
+          word === "coi" ? { valsiid: 1, word: "coi", type_name: "cmavo", rafsi: null, source_langid: 1 } : null,
+      });
+
+      const result = await analyze("coi Zzqx", { cache, client, allowWordListFallback: true });
+
+      const nameTerm = result.terms.find((term) => term.word === "Zzqx");
+      expect(nameTerm).toMatchObject({ selmaho: "C", valsi: null });
+    });
+
+    it("still throws the original LojbanSyntaxError when nothing in the text resolves to anything real", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({ getValsi: async () => null });
+
+      await expect(analyze("###invalid###", { cache, client, allowWordListFallback: true })).rejects.toThrow(
+        LojbanSyntaxError,
+      );
+    });
+  });
 });
