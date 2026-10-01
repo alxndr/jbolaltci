@@ -238,6 +238,28 @@ test("analyzing text neither grammar can parse falls back to a per-word dictiona
   await expect(page.locator("#nesting-section")).toBeHidden();
 });
 
+test("the word-list fallback still splits a compound cmavo token that's grammatical on its own, instead of showing it as one unresolved word", async ({ page }) => {
+  await page.goto("/");
+
+  // "a'oi u'isai" fails to parse as a whole (a'oi breaks it), but "u'isai"
+  // -- a compound of u'i and sai with no space -- is grammatical by itself
+  // and shouldn't be swallowed into a single "(no dictionary entry)" row.
+  await page.locator("#lojban-input").fill("a'oi u'isai");
+  await page.locator("#analyze-button").click();
+
+  await expect(page.locator("#word-list-fallback-notice")).toBeVisible({ timeout: 15_000 });
+
+  const uiRow = page.locator("#results-body tr", { hasText: "u'i" }).first();
+  await expect(uiRow).toBeVisible();
+  await expect(uiRow).toContainText("UI");
+  await expect(uiRow).not.toContainText("no dictionary entry");
+
+  const saiRow = page.locator("#results-body tr", { hasText: "sai" });
+  await expect(saiRow).toBeVisible();
+  await expect(saiRow).toContainText("CAI");
+  await expect(saiRow).not.toContainText("no dictionary entry");
+});
+
 test("the word-list-fallback notice clears after a subsequent grammatical analysis", async ({ page }) => {
   await page.goto("/");
 

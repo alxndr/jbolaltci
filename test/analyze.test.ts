@@ -273,6 +273,29 @@ describe("analyze", () => {
       expect(result.terms[0]?.selmaho).toBe("COI");
     });
 
+    it("still splits a compound cmavo token (e.g. u'isai = u'i + sai) that's grammatical on its own, rather than treating it as one unresolved word", async () => {
+      const cache = new FakeCache();
+      const client = fakeClient({
+        getValsi: async (word) =>
+          word === "a'oi"
+            ? { valsiid: 1, word: "a'oi", type_name: "experimental cmavo", rafsi: null, source_langid: 1 }
+            : fakeValsi(word, 1),
+      });
+
+      // "a'oi u'isai" fails to parse as a whole (a'oi isn't in either
+      // grammar's cmavo list), but "u'isai" on its own is grammatical --
+      // it shouldn't be swallowed into a single "(no dictionary entry)" term.
+      const result = await analyze("a'oi u'isai", { cache, client, allowWordListFallback: true });
+
+      expect(result.usedWordListFallback).toBe(true);
+      expect(result.terms.map((t) => [t.selmaho, t.word])).toEqual([
+        ["experimental cmavo", "a'oi"], // fakeDefinitions() never sets a selmaho -- see the dedicated test for that mapping
+        ["UI", "u'i"],
+        ["CAI", "sai"],
+      ]);
+      expect(result.terms.every((t) => t.valsi !== null)).toBe(true);
+    });
+
     it("still decomposes an undocumented lujvo found this way", async () => {
       const cache = new FakeCache();
       const client = fakeClient({

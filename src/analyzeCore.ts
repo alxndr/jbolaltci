@@ -106,7 +106,14 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
     terms = extractTerms(parseTree);
   } catch (err) {
     if (!(err instanceof LojbanSyntaxError) || !deps.allowWordListFallback) throw err;
-    const fallback = await buildWordListFallback(text, cache, client, includeDefinitions);
+    const fallback = await buildWordListFallback(
+      text,
+      deps.parseTrimmed,
+      deps.parseTrimmedExperimental,
+      cache,
+      client,
+      includeDefinitions,
+    );
     if (fallback === null) throw err;
     parseTree = fallback.parseTree;
     terms = fallback.terms;
@@ -174,17 +181,32 @@ export async function analyzeCore(text: string, deps: AnalyzeCoreDeps): Promise<
   return { input: text, parseTree, terms: annotatedTerms, usedExperimentalGrammar, usedWordListFallback };
 }
 
-/** The word-list fallback tier (see ADR 006): tries every other option
- * exhausted, so takes the text apart with a naive whitespace split (not real
- * Lojban morphology) and looks each token up against lensisku directly.
+/** The word-list fallback tier (see ADR 006): every other option exhausted,
+ * takes the text apart with a naive whitespace split (not real Lojban
+ * morphology) and resolves each resulting token one of two ways:
+ *
+ * 1. The token might still be grammatical entirely on its own, even though
+ *    the full text wasn't -- e.g. "u'isai" (a compound of the cmavo "u'i"
+ *    and "sai" written with no space) fails to parse as part of a sentence
+ *    containing some *other*, genuinely ungrammatical word, but parses fine
+ *    by itself. Reusing the real grammar's own tokenization here (instead of
+ *    treating the whole token as one opaque dictionary word) is what lets a
+ *    token like that still come out as two properly selma'o-tagged terms
+ *    rather than a single unrecognized blob.
+ * 2. Only if that fails too does it fall back to looking the raw token up
+ *    against lensisku directly, for real single words the grammar doesn't
+ *    recognize at all (e.g. `a'oi` -- see ADR 006's own motivating case).
+ *
  * Returns null -- signalling the caller should give up and surface the
  * original LojbanSyntaxError instead -- if nothing in the text resolved to
- * anything real (a dictionary entry, or a successful lujvo decomposition);
- * otherwise returns every token as a Term, including ones that stayed
- * unresolved, so the caller can show a real result for the parts that did
- * work rather than an all-or-nothing failure. */
+ * anything real (grammatically confirmed on its own, a dictionary entry, or
+ * a successful lujvo decomposition); otherwise returns every token as a
+ * Term, including ones that stayed unresolved, so the caller can show a real
+ * result for the parts that did work rather than an all-or-nothing failure. */
 async function buildWordListFallback(
   text: string,
+  parseTrimmed: (text: string) => TrimmedNode[],
+  parseTrimmedExperimental: ((text: string) => TrimmedNode[]) | undefined,
   cache: DictionaryCache,
   client: DictionaryLookup,
   includeDefinitions: boolean,
@@ -196,8 +218,18 @@ async function buildWordListFallback(
   const terms: Term[] = [];
   const leaves: TrimmedNode[] = [];
 
-  for (const word of tokens) {
-    const { valsi, definitions } = await lookupWord(word, cache, client, includeDefinitions);
+  for (const token of tokens) {
+    const subTerms = tryParseStandalone(token, parseTrimmed, parseTrimmedExperimental);
+    if (subTerms !== null && subTerms.length > 0) {
+      anyRealResolution = true;
+      for (const subTerm of subTerms) {
+        terms.push({ index: terms.length, selmaho: subTerm.selmaho, word: subTerm.word });
+        leaves.push(`${subTerm.selmaho}:${subTerm.word}`);
+      }
+      continue;
+    }
+
+    const { valsi, definitions } = await lookupWord(token, cache, client, includeDefinitions);
     let selmaho: string;
     if (valsi !== null) {
       anyRealResolution = true;
@@ -205,7 +237,7 @@ async function buildWordListFallback(
     } else {
       let isLujvo = false;
       try {
-        decomposeLujvo(word);
+        decomposeLujvo(token);
         isLujvo = true;
       } catch (err) {
         if (!(err instanceof NotLujvoError)) throw err;
@@ -213,7 +245,7 @@ async function buildWordListFallback(
       if (isLujvo) {
         anyRealResolution = true;
         selmaho = "L";
-      } else if (/^\p{Lu}/u.test(word)) {
+      } else if (/^\p{Lu}/u.test(token)) {
         // A guess, not a confirmed classification -- matches camxes' own
         // cmevla rule (an initial capital letter), but lensisku has no entry
         // to back it up, so it doesn't count toward anyRealResolution.
@@ -222,11 +254,29 @@ async function buildWordListFallback(
         selmaho = "?";
       }
     }
-    terms.push({ index: terms.length, selmaho, word });
-    leaves.push(`${selmaho}:${word}`);
+    terms.push({ index: terms.length, selmaho, word: token });
+    leaves.push(`${selmaho}:${token}`);
   }
 
   return anyRealResolution ? { parseTree: leaves, terms } : null;
+}
+
+/** Tries parsing a single whitespace-delimited token as a standalone
+ * utterance of its own, under whichever grammar accepts it. Null means
+ * neither grammar recognizes it on its own either -- not a bug, just signals
+ * the caller to fall back to a raw dictionary lookup for this token instead. */
+function tryParseStandalone(
+  token: string,
+  parseTrimmed: (text: string) => TrimmedNode[],
+  parseTrimmedExperimental: ((text: string) => TrimmedNode[]) | undefined,
+): Term[] | null {
+  try {
+    const { result } = parseWithFallback(token, parseTrimmed, parseTrimmedExperimental);
+    return extractTerms(result);
+  } catch (err) {
+    if (err instanceof LojbanSyntaxError) return null;
+    throw err;
+  }
 }
 
 /** Maps a lensisku valsi to the same single-letter/selma'o codes
