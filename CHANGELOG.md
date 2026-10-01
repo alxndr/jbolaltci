@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+
+## [0.2.0-rc.2] - 2026-10-01
+
 ### Added
 
 - Linting via [Biome](https://biomejs.dev), with the `recommended` rule preset, wired into CI ahead of the typechecks (`npm run lint`, `npm run lint:fix`). The formatter is deliberately left off, so this adds no reformatting churn; the rationale for the tool choice, and for the reasons the formatter and import-organizing are off for now, are in [ADR 004](./docs/architecture-decisions/004-lint-with-biome-defer-formatting.md).
@@ -60,7 +63,8 @@ First published release.
 - `LensiskuClient` now binds `fetch` to `globalThis`. A browser's native `fetch` throws `"Illegal invocation"` when called with an unbound reference; Node's `fetch` silently tolerated the same code.
 - `web/build.mjs` was printing `http://undefined:3100` for local dev — esbuild's `serve()` resolves with `{ hosts: string[] }`, not a singular `host`.
 
-[Unreleased]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.1...HEAD
+[Unreleased]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.2...HEAD
+[0.2.0-rc.2]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.1...v0.2.0-rc.2
 [0.2.0-rc.1]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-rc.0...v0.2.0-rc.1
 [0.2.0-rc.0]: https://github.com/alxndr/jbolaltci/compare/v0.2.0-alpha...v0.2.0-rc.0
 [0.2.0-alpha]: https://github.com/alxndr/jbolaltci/releases/tag/v0.2.0-alpha
