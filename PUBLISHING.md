@@ -3,7 +3,7 @@
 Releases go out via GitHub Actions, using npm's Trusted Publishing (OIDC) -- see `.github/workflows/publish.yml`.
 No npm token lives in this repo or on anyone's laptop; each publish is authenticated per CI run and tied to this exact repo + workflow file. See [ADR 002](./docs/architecture-decisions/002-publish-via-oidc-trusted-publishing.md) for why.
 
-**`0.2.0-alpha` is published** (the one-time bootstrap below, done manually), and the npm Trusted Publisher is now configured -- `0.2.0-rc.0` was published automatically by `publish.yml` on 2026-08-15, no local `npm publish` involved. The normal release flow below is fully live.
+Trusted Publishing is fully configured -- see the one-time bootstrap section below for history. The normal release flow is the only one you need.
 
 ## normal release
 
